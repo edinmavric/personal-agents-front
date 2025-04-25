@@ -17,7 +17,6 @@ import {
     verifyToken as authVerifyToken,
     User,
     LoginData,
-    getDashboardRouteForRole,
 } from './auth';
 import { toast } from 'sonner';
 
@@ -119,8 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(loggedInUser);
             setIsAuthenticated(true);
 
-            const dashboardRoute = getDashboardRouteForRole(loggedInUser.role);
-            router.push(dashboardRoute);
+            router.push('/');
             toast.success('Logged in successfully');
         } catch (error: any) {
             console.error('Login error in context:', error);
