@@ -1,5 +1,7 @@
 import { agentsData } from '@/lib/data/agents';
 import { usersData } from '@/lib/data/users';
+import { authAxios } from './auth';
+import { API_ENDPOINTS } from './api-config';
 
 interface ChatMessage {
     role: 'user' | 'assistant';
@@ -12,44 +14,210 @@ interface ChatHistory {
     [key: string]: ChatMessage[];
 }
 
-interface User {
+export interface User {
     id: number;
     name: string;
     subscribed_agents?: number[];
     chat_history?: ChatHistory;
 }
 
-export const fetchAgents = async () => {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve(agentsData);
-        }, 1000);
-    });
+export interface Agent {
+    id: number;
+    name: string;
+    description: string;
+    created_at: string;
+    updated_at: string;
+    system_prompt: string;
+}
+
+export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
+
+export interface ApiUser {
+    id: number;
+    password: string;
+    last_login: string | null;
+    is_superuser: boolean;
+    is_staff: boolean;
+    date_joined: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    is_active: boolean;
+    created_at: string;
+}
+
+export interface Notification {
+    id: number;
+    message: string;
+    timestamp: string;
+    is_read: boolean;
+    user: number;
+}
+
+export interface UserAgentSubscription {
+    id: number;
+    user_details: string;
+    user: number;
+    agent: number;
+}
+
+export const fetchAgents = async (): Promise<PaginatedResponse<Agent>> => {
+    try {
+        const response = await authAxios.get<PaginatedResponse<Agent>>(
+            API_ENDPOINTS.agents
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching agents:', error);
+        return {
+            count: 0,
+            next: null,
+            previous: null,
+            results: [],
+        };
+    }
 };
 
-export const fetchAgent = async (id: number) => {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const agent = agentsData.find(agent => agent.id === id);
-            resolve(agent);
-        }, 1000);
-    });
+export const fetchAgentById = async (id: number): Promise<Agent | null> => {
+    try {
+        const response = await authAxios.get<Agent>(
+            `${API_ENDPOINTS.agents}/${id}/`
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching agent:', error);
+        return null;
+    }
 };
 
-export const fetchUsers = async () => {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve(usersData);
-        }, 1000);
-    });
+export const fetchUsers = async (): Promise<PaginatedResponse<ApiUser>> => {
+    try {
+        const response = await authAxios.get<PaginatedResponse<ApiUser>>(
+            API_ENDPOINTS.users
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        return {
+            count: 0,
+            next: null,
+            previous: null,
+            results: [],
+        };
+    }
 };
-export const fetchUser = async (id: number) => {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const user = usersData.find(user => user.id === id);
-            resolve(user);
-        }, 1000);
-    });
+
+export const fetchUserById = async (id: number): Promise<ApiUser | null> => {
+    try {
+        const response = await authAxios.get<ApiUser>(
+            `${API_ENDPOINTS.users}/${id}/`
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        return null;
+    }
+};
+
+export const fetchNotifications = async (): Promise<
+    PaginatedResponse<Notification>
+> => {
+    try {
+        const response = await authAxios.get<PaginatedResponse<Notification>>(
+            API_ENDPOINTS.notifications
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        return {
+            count: 0,
+            next: null,
+            previous: null,
+            results: [],
+        };
+    }
+};
+
+export const fetchNotificationById = async (
+    id: number
+): Promise<Notification | null> => {
+    try {
+        const response = await authAxios.get<Notification>(
+            `${API_ENDPOINTS.notifications}/${id}/`
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching notification:', error);
+        return null;
+    }
+};
+
+export const createNotification = async (
+    data: Omit<Notification, 'id'>
+): Promise<Notification | null> => {
+    try {
+        const response = await authAxios.post<Notification>(
+            API_ENDPOINTS.notifications,
+            data
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error creating notification:', error);
+        return null;
+    }
+};
+
+export const markNotificationAsRead = async (
+    id: number
+): Promise<Notification | null> => {
+    try {
+        const response = await authAxios.patch<Notification>(
+            `${API_ENDPOINTS.notifications}/${id}/`,
+            { is_read: true }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+        return null;
+    }
+};
+
+export const fetchUserAgentSubscriptions = async (): Promise<
+    PaginatedResponse<UserAgentSubscription>
+> => {
+    try {
+        const response = await authAxios.get<
+            PaginatedResponse<UserAgentSubscription>
+        >(API_ENDPOINTS.userAgentSubscriptions);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user agent subscriptions:', error);
+        return {
+            count: 0,
+            next: null,
+            previous: null,
+            results: [],
+        };
+    }
+};
+
+export const fetchUserAgentSubscriptionById = async (
+    id: number
+): Promise<UserAgentSubscription | null> => {
+    try {
+        const response = await authAxios.get<UserAgentSubscription>(
+            `${API_ENDPOINTS.userAgentSubscriptions}/${id}/`
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user agent subscription:', error);
+        return null;
+    }
 };
 
 export const subscribeToAgent = async (userId: number, agentId: number) => {
@@ -166,7 +334,6 @@ export const fetchChatHistory = async (userId: number, agentId: number) => {
                     2: [],
                 };
             }
-            // Ensure the key is a string if chat_history keys are expected to be strings
             const agentIdStr = agentId.toString();
             const history =
                 (user.chat_history as { [key: string]: any[] })[agentIdStr] ||

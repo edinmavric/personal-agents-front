@@ -1,7 +1,8 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+import { User } from './api';
 
 // Configure API URL based on environment
-const API_URL = 'https://edusoft-api-uommb.ondigitalocean.app';
+const API_URL = 'https://hackathon-api-f8pfp.ondigitalocean.app';
 
 export interface LoginData {
     email: string;
@@ -14,20 +15,6 @@ export interface SignupData {
     last_name: string;
     password1: string;
     password2: string;
-}
-
-export interface User {
-    pk: number;
-    email: string;
-    first_name: string;
-    last_name: string;
-    is_active: boolean;
-    role: string; // 'admin', 'teacher', 'secretary', 'parent', 'student'
-    organization: number | null; // Organization ID
-    organization_details?: { // Optional organization details
-        id: number;
-        name: string;
-    } | null;
 }
 
 export interface AuthResponse {
@@ -54,7 +41,6 @@ authAxios.interceptors.request.use(
     error => Promise.reject(error)
 );
 
-// Add response interceptor to handle token refresh
 authAxios.interceptors.response.use(
     response => response,
     async (error: AxiosError) => {
@@ -62,34 +48,33 @@ authAxios.interceptors.response.use(
             _retry?: boolean;
         };
 
-        // If error is 401 and we haven't already tried to refresh the token
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
             try {
-                // Try to refresh the token
                 const refreshed = await refreshToken();
 
                 if (refreshed) {
-                    // If token refresh was successful, retry the original request
                     const tokens = sessionStorage.getItem('auth_tokens');
                     if (tokens) {
                         const { access } = JSON.parse(tokens);
                         if (originalRequest.headers) {
                             originalRequest.headers.Authorization = `Bearer ${access}`;
                         }
-                        // Use the base axios instance for retrying to avoid infinite loops if the token is still invalid
                         return axios(originalRequest);
                     }
                 } else {
-                     // If refresh fails, logout
-                    await logout(); // Ensure logout clears state and redirects
-                    return Promise.reject(new Error("Token refresh failed, logged out."));
+                    await logout(); 
+                    return Promise.reject(
+                        new Error('Token refresh failed, logged out.')
+                    );
                 }
             } catch (refreshError) {
-                console.error('Error during token refresh or retry:', refreshError);
-                 // If refresh fails, logout
-                await logout(); // Ensure logout clears state and redirects
+                console.error(
+                    'Error during token refresh or retry:',
+                    refreshError
+                );
+                await logout();
                 return Promise.reject(refreshError);
             }
         }
@@ -100,7 +85,10 @@ authAxios.interceptors.response.use(
 
 export const login = async (data: LoginData): Promise<AuthResponse> => {
     try {
-        const response = await axios.post<AuthResponse>(`${API_URL}/auth/login/`, data); // Use AuthResponse type
+        const response = await axios.post<AuthResponse>(
+            `${API_URL}/auth/login/`,
+            data
+        ); // Use AuthResponse type
         // Store access token in session storage and refresh token in local storage
         sessionStorage.setItem(
             'auth_tokens',
@@ -121,12 +109,16 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
     }
 };
 
-export const signup = async (data: SignupData): Promise<AuthResponse>=> {
+export const signup = async (data: SignupData): Promise<AuthResponse> => {
     try {
-        const response = await axios.post<AuthResponse>(`${API_URL}/auth/registration/`, { // Use AuthResponse type
-            ...data,
-            role: 'admin', // Assuming default role for signup is admin
-        });
+        const response = await axios.post<AuthResponse>(
+            `${API_URL}/auth/registration/`,
+            {
+                // Use AuthResponse type
+                ...data,
+                role: 'admin', // Assuming default role for signup is admin
+            }
+        );
         // Store tokens in session storage if they are returned
         if (response.data.access && response.data.refresh) {
             sessionStorage.setItem(
@@ -198,14 +190,18 @@ export const refreshToken = async (): Promise<boolean> => {
     try {
         const refreshData = localStorage.getItem('refresh_token');
         if (!refreshData) {
-            console.log("No refresh token found.");
+            console.log('No refresh token found.');
             return false;
         }
 
         const { refresh } = JSON.parse(refreshData);
-        const response = await axios.post<{ access: string }>(`${API_URL}/auth/token/refresh/`, { // Type the response
-            refresh: refresh,
-        });
+        const response = await axios.post<{ access: string }>(
+            `${API_URL}/auth/token/refresh/`,
+            {
+                // Type the response
+                refresh: refresh,
+            }
+        );
 
         // Update only access token in session storage
         sessionStorage.setItem(
@@ -214,7 +210,7 @@ export const refreshToken = async (): Promise<boolean> => {
                 access: response.data.access,
             })
         );
-        console.log("Token refreshed successfully.");
+        console.log('Token refreshed successfully.');
         return true;
     } catch (error) {
         console.error('Token refresh failed:', error);
