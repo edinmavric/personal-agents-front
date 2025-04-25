@@ -15,6 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { agentsData } from '@/components/custom/agentsMockData';
 
 interface Message {
     id: string;
@@ -34,6 +35,12 @@ interface ChatModel {
     id: string;
     name: string;
     description: string;
+    price?: number;
+    rating?: number;
+    reviews?: number;
+    image?: string;
+    tags?: string[];
+    categories?: string[];
 }
 
 export default function Chat() {
@@ -60,20 +67,11 @@ export default function Chat() {
         },
     ]);
     const [activeConversation, setActiveConversation] = useState<number>(1);
-    const [selectedModel, setSelectedModel] = useState<string>('gpt-4');
+    const [selectedModel, setSelectedModel] = useState<string>(
+        agentsData[0].id
+    );
 
-    const availableModels: ChatModel[] = [
-        {
-            id: 'gpt-4',
-            name: 'GPT-4',
-            description: 'Most capable model, best at complex tasks',
-        },
-        {
-            id: 'gpt-3.5-turbo',
-            name: 'GPT-3.5',
-            description: 'Faster response, great for most tasks',
-        },
-    ];
+    const availableModels: ChatModel[] = agentsData;
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
