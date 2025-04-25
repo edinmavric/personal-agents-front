@@ -25,5 +25,19 @@ export const agentsData = [
 ]
 
 export interface Agent {
-    id: number
+    id: number;
+    name: string;
+    description: string;
+    appearance: {
+        accent: string; // e.g., "green", "blue" - used for glow
+        iconColor: string;
+        bgColor: string;
+        iconInitial: string;
+    };
+    system_prompt: string;
+    price: string; // Or number if parsed
+    is_primary: boolean;
+    tags: string[];
+    reviewCount: number;
+    rating: number;
 }

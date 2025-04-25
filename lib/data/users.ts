@@ -20,3 +20,21 @@ export const usersData = [
         }
     }
 ]
+
+export interface ChatMessage {
+    role: 'user' | 'assistant';
+    message: string;
+    timestamp: string; // ISO 8601 format
+}
+
+export interface User {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    password: string; // In a real application, this should be hashed
+    subscribed_agents: number[]; // Array of agent IDs
+    chat_history: {
+        [key: string]: ChatMessage[]; // Keyed by agent ID
+    };
+}

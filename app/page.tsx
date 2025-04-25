@@ -6,72 +6,42 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Plus, Send, MessageSquare, MoreVertical, Search } from 'lucide-react';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { agentsData } from '@/components/custom/agentsMockData';
+import { Send, MessageSquare, MoreVertical, Loader2, Bot } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { fetchAgents, fetchChatHistory, sendMessage, fetchUser } from '@/lib/api';
+import type { Agent } from '@/lib/data/agents';
+import type { ChatMessage, User } from '@/lib/data/users';
 
-interface Message {
-    id: string;
-    content: string;
-    role: 'user' | 'assistant';
-    timestamp?: Date;
-}
+const getGlowColorClass = (accent?: string): string => {
+    switch (accent?.toLowerCase()) {
+        case 'green':
+            return 'bg-green-500';
+        case 'blue':
+            return 'bg-blue-500';
+        case 'red':
+            return 'bg-red-500';
+        case 'yellow':
+            return 'bg-yellow-500';
+        case 'purple':
+            return 'bg-purple-500';
+        default:
+            return 'bg-primary';
+    }
+};
 
-interface Conversation {
-    id: number;
-    title: string;
-    lastMessage?: string;
-    date?: Date;
-}
-
-interface ChatModel {
-    id: string;
-    name: string;
-    description: string;
-    price?: number;
-    rating?: number;
-    reviews?: number;
-    image?: string;
-    tags?: string[];
-    categories?: string[];
-}
+const USER_ID = 1;
 
 export default function Chat() {
     const [input, setInput] = useState('');
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [conversations, setConversations] = useState<Conversation[]>([
-        {
-            id: 1,
-            title: 'Project brainstorming ideas',
-            lastMessage: 'Let me think about that...',
-            date: new Date(2023, 3, 15),
-        },
-        {
-            id: 2,
-            title: 'Weekly planning session',
-            lastMessage: 'I will create a schedule for you',
-            date: new Date(2023, 3, 14),
-        },
-        {
-            id: 3,
-            title: 'Research on machine learning',
-            lastMessage: 'Here are some resources on neural networks',
-            date: new Date(2023, 3, 12),
-        },
-    ]);
-    const [activeConversation, setActiveConversation] = useState<number>(1);
-    const [selectedModel, setSelectedModel] = useState<string>(
-        agentsData[0].id
-    );
-
-    const availableModels: ChatModel[] = agentsData;
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [allAgents, setAllAgents] = useState<Agent[]>([]);
+    const [subscribedAgents, setSubscribedAgents] = useState<Agent[]>([]);
+    const [user, setUser] = useState<User | null>(null);
+    const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
+    const [isLoadingAgents, setIsLoadingAgents] = useState(true);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -80,187 +50,242 @@ export default function Chat() {
     };
 
     useEffect(() => {
+        const loadInitialData = async () => {
+            setIsLoadingAgents(true);
+            setError(null);
+            try {
+                const [userDataResponse, fetchedAgentsResponse] = await Promise.all([
+                    fetchUser(USER_ID),
+                    fetchAgents()
+                ]);
+
+                const userData = userDataResponse as User | null;
+                const fetchedAgents = (fetchedAgentsResponse as Agent[] | null) ?? [];
+
+                setUser(userData);
+                setAllAgents(fetchedAgents);
+
+                if (userData?.subscribed_agents && fetchedAgents.length > 0) {
+                    const subAgents = fetchedAgents.filter(agent =>
+                        userData.subscribed_agents.includes(agent.id)
+                    );
+                    setSubscribedAgents(subAgents);
+
+                    const primaryAgent = subAgents.find(agent => agent.is_primary);
+                    if (primaryAgent) {
+                        setSelectedAgentId(primaryAgent.id);
+                    } else if (subAgents.length > 0) {
+                        setSelectedAgentId(subAgents[0].id);
+                    } else {
+                        setSelectedAgentId(null);
+                    }
+                } else {
+                    setSubscribedAgents([]);
+                    setSelectedAgentId(null);
+                }
+
+            } catch (err) {
+                console.error('Failed to fetch initial data:', err);
+                setError('Failed to load initial data. Please try again later.');
+                setSubscribedAgents([]);
+                setSelectedAgentId(null);
+            } finally {
+                setIsLoadingAgents(false);
+            }
+        };
+        loadInitialData();
+    }, []);
+
+    useEffect(() => {
+        if (selectedAgentId === null) {
+            setMessages([]);
+            setError(null);
+            return;
+        }
+
+        const loadHistory = async () => {
+            setIsLoadingHistory(true);
+            setError(null);
+            try {
+                const history = await fetchChatHistory(
+                    USER_ID,
+                    selectedAgentId
+                );
+                setMessages(history as ChatMessage[]);
+            } catch (err) {
+                console.error('Failed to fetch chat history:', err);
+                setError(
+                    'Failed to load chat history. Please try again later.'
+                );
+                setMessages([]);
+            } finally {
+                setIsLoadingHistory(false);
+            }
+        };
+        loadHistory();
+    }, [selectedAgentId]);
+
+    useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!input.trim()) return;
+        if (!input.trim() || selectedAgentId === null || isSending || isLoadingHistory) return;
 
-        const userMessage: Message = {
-            id: Date.now().toString(),
-            content: input,
+        const userMessage: ChatMessage = {
             role: 'user',
-            timestamp: new Date(),
+            message: input,
+            timestamp: new Date().toISOString(),
         };
 
         setMessages(prev => [...prev, userMessage]);
+        const currentInput = input;
         setInput('');
+        setIsSending(true);
+        setError(null);
 
-        setTimeout(() => {
-            const aiMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                content: `This is a simulated response to: "${input}"`,
-                role: 'assistant',
-                timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, aiMessage]);
-        }, 1000);
+        try {
+            const agentResponse = await sendMessage(
+                USER_ID,
+                selectedAgentId,
+                currentInput
+            );
+            setMessages(prev => [...prev, agentResponse as ChatMessage]);
+        } catch (err) {
+            console.error('Failed to send message:', err);
+            setError('Failed to send message. Please try again.');
+            setMessages(prev => prev.filter(msg => msg !== userMessage));
+            setInput(currentInput);
+        } finally {
+            setIsSending(false);
+        }
     };
 
-    const createNewConversation = () => {
-        const newId = Math.max(...conversations.map(c => c.id)) + 1;
-        const newConversation = {
-            id: newId,
-            title: `New Conversation ${newId}`,
-            date: new Date(),
-        };
-        setConversations([newConversation, ...conversations]);
-        setActiveConversation(newId);
-        setMessages([]);
-    };
+    const selectedAgent = subscribedAgents.find(agent => agent.id === selectedAgentId);
+    const glowColorClass = getGlowColorClass(selectedAgent?.appearance?.accent);
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
-            <div className="w-80 border-r flex flex-col h-full">
-                <div className="shrink-0 p-4 border-b flex items-center justify-between">
-                    <h2 className="font-semibold text-lg">Conversations</h2>
-                    <div className="flex gap-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={createNewConversation}
-                            title="New conversation"
-                        >
-                            <Plus className="h-4 w-4" />
-                        </Button>
-                        <ThemeToggle />
-                    </div>
+            <div className="w-80 border-r flex flex-col h-full shrink-0">
+                <div className="h-14 border-b px-4 flex items-center justify-between shrink-0">
+                    <h2 className="font-semibold text-lg">Chats</h2>
                 </div>
-
-                {/* Search */}
-                <div className="shrink-0 p-3 border-b">
-                    <div className="relative">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            className="w-full pl-8 pr-3 py-2 text-sm bg-muted/40 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-                            placeholder="Search conversations..."
-                        />
-                    </div>
-                </div>
-
-                {/* Conversations List */}
-                <div className="flex-1 overflow-auto">
-                    <ScrollArea className="h-full">
-                        <div className="p-2">
-                            {conversations.map(conv => (
-                                <div
-                                    key={conv.id}
-                                    onClick={() =>
-                                        setActiveConversation(conv.id)
-                                    }
-                                    className={cn(
-                                        'p-3 rounded-lg mb-1 cursor-pointer transition-colors',
-                                        conv.id === activeConversation
-                                            ? 'bg-accent text-accent-foreground'
-                                            : 'hover:bg-muted'
-                                    )}
+                <ScrollArea className="flex-1 overflow-y-auto">
+                    <div className="p-4 space-y-2">
+                        {isLoadingAgents ? (
+                            <div className="text-center text-muted-foreground py-4">Loading...</div>
+                        ) : subscribedAgents.length > 0 ? (
+                            subscribedAgents.map(agent => (
+                                <Button
+                                    key={agent.id}
+                                    variant={selectedAgentId === agent.id ? 'secondary' : 'ghost'}
+                                    className="w-full justify-start h-auto py-2 px-3 text-left"
+                                    onClick={() => setSelectedAgentId(agent.id)}
                                 >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1 truncate">
-                                            <div className="font-medium text-sm">
-                                                {conv.title}
-                                            </div>
-                                            {conv.lastMessage && (
-                                                <div className="text-xs text-muted-foreground truncate mt-0.5">
-                                                    {conv.lastMessage}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {conv.date && (
-                                            <div className="text-xs text-muted-foreground ml-2">
-                                                {conv.date.toLocaleDateString(
-                                                    'en-US',
-                                                    {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                    }
-                                                )}
-                                            </div>
-                                        )}
+                                    <Avatar className="h-8 w-8 mr-3">
+                                        <AvatarImage src={agent.appearance?.iconInitial} alt={agent.name} />
+                                        <AvatarFallback>
+                                            <Bot size={16} />
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex flex-col overflow-hidden">
+                                        <span className="font-medium truncate text-sm">{agent.name}</span>
+                                        <span className="text-xs text-muted-foreground truncate">
+                                            {agent.description}
+                                        </span>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </div>
+                                </Button>
+                            ))
+                        ) : (
+                            <div className="text-center text-muted-foreground py-4">
+                                No active chats. Visit the marketplace to subscribe to agents.
+                            </div>
+                        )}
+                    </div>
+                </ScrollArea>
             </div>
 
-            {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col">
-                {/* Chat Header */}
-                <div className="h-14 border-b flex items-center justify-between px-6">
+            <div className="flex flex-col flex-1 h-screen overflow-hidden relative">
+                {selectedAgent && (
+                    <div
+                        className={cn(
+                            'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+                            'w-[600px] h-[600px]',
+                            'rounded-full blur-3xl opacity-15 pointer-events-none',
+                            'transition-colors duration-500 ease-in-out',
+                            glowColorClass
+                        )}
+                        style={{ willChange: 'background-color, opacity' }}
+                    />
+                )}
+
+                <div className="h-14 border-b flex items-center justify-between px-6 shrink-0 relative z-10 bg-background/80 backdrop-blur-sm">
                     <div className="flex items-center gap-4">
-                        <Select
-                            value={selectedModel}
-                            onValueChange={setSelectedModel}
-                        >
-                            <SelectTrigger className="w-[180px] h-8">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableModels.map(model => (
-                                    <SelectItem key={model.id} value={model.id}>
-                                        <div className="flex flex-col">
-                                            <div className="font-medium">
-                                                {model.name}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {model.description}
-                                            </div>
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <div className="h-4 w-px bg-border" />
-                        <div className="flex items-center">
-                            <MessageSquare className="h-5 w-5 text-primary mr-2" />
-                            <h3 className="font-medium">
-                                {conversations.find(
-                                    c => c.id === activeConversation
-                                )?.title || 'New Conversation'}
-                            </h3>
-                        </div>
+                        {selectedAgent ? (
+                            <>
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={selectedAgent.appearance?.iconInitial} alt={selectedAgent.name} />
+                                    <AvatarFallback>
+                                        <Bot size={16} />
+                                    </AvatarFallback>
+                                </Avatar>
+                                <h3 className="font-medium">
+                                    {selectedAgent.name}
+                                </h3>
+                            </>
+                        ) : !isLoadingAgents ? (
+                             <div className="text-muted-foreground">Select a chat</div>
+                        ) : null}
                     </div>
-                    <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2 ml-auto">
+                        <ThemeToggle />
+                        <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
 
-                {/* Chat Messages */}
-                <div className="flex-1 overflow-auto">
+                <div className="flex-1 overflow-auto relative z-10">
                     <ScrollArea className="h-full">
                         <div className="max-w-3xl mx-auto p-6 space-y-6">
-                            {messages.length === 0 ? (
+                            {isLoadingHistory ? (
+                                <div className="flex justify-center items-center py-20">
+                                    <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                                </div>
+                            ) : error && messages.length === 0 ? (
+                                <div className="text-center py-20 text-destructive">
+                                    {error}
+                                </div>
+                            ) : !selectedAgentId && !isLoadingAgents ? (
+                                <div className="flex flex-col items-center justify-center h-full text-center py-20">
+                                    <MessageSquare
+                                        className="h-12 w-12 text-muted-foreground mb-4"
+                                        strokeWidth={1.5}
+                                    />
+                                    <h3 className="text-xl font-medium">Select a chat</h3>
+                                    <p className="text-muted-foreground mt-2 max-w-md">
+                                        Choose an agent from the sidebar to start chatting.
+                                    </p>
+                                </div>
+                            ) : messages.length === 0 && !isLoadingHistory ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center py-20">
                                     <MessageSquare
                                         className="h-12 w-12 text-muted-foreground mb-4"
                                         strokeWidth={1.5}
                                     />
                                     <h3 className="text-xl font-medium">
-                                        Start a new conversation
+                                        {`Start chatting with ${selectedAgent?.name || 'agent'}`}
                                     </h3>
                                     <p className="text-muted-foreground mt-2 max-w-md">
-                                        Ask any question or start chatting to
-                                        get assistance on your tasks.
+                                        Ask any question or start chatting to get assistance.
                                     </p>
                                 </div>
                             ) : (
                                 <>
-                                    {messages.map(message => (
+                                    {messages.map((message, index) => (
                                         <div
-                                            key={message.id}
+                                            key={message.timestamp + '-' + index}
                                             className={cn(
                                                 'flex',
                                                 message.role === 'user'
@@ -268,28 +293,35 @@ export default function Chat() {
                                                     : 'justify-start'
                                             )}
                                         >
+                                            {message.role === 'assistant' && selectedAgent && (
+                                                <Avatar className="h-7 w-7 mr-2 shrink-0">
+                                                    <AvatarImage src={selectedAgent.appearance?.iconInitial} alt={selectedAgent.name} />
+                                                    <AvatarFallback><Bot size={14} /></AvatarFallback>
+                                                </Avatar>
+                                            )}
                                             <div
                                                 className={cn(
-                                                    'rounded-lg p-4 max-w-[85%] shadow-sm',
+                                                    'rounded-lg p-3 max-w-[85%] shadow-sm text-sm',
                                                     message.role === 'user'
                                                         ? 'bg-primary text-primary-foreground rounded-tr-none'
                                                         : 'bg-card rounded-tl-none border'
                                                 )}
                                             >
                                                 <div className="whitespace-pre-wrap break-words">
-                                                    {message.content}
+                                                    {message.message}
                                                 </div>
                                                 {message.timestamp && (
                                                     <div
                                                         className={cn(
-                                                            'text-xs mt-2',
-                                                            message.role ===
-                                                                'user'
+                                                            'text-xs mt-1.5 text-right',
+                                                            message.role === 'user'
                                                                 ? 'text-primary-foreground/80'
                                                                 : 'text-muted-foreground'
                                                         )}
                                                     >
-                                                        {message.timestamp.toLocaleTimeString(
+                                                        {new Date(
+                                                            message.timestamp
+                                                        ).toLocaleTimeString(
                                                             'en-US',
                                                             {
                                                                 hour: '2-digit',
@@ -308,30 +340,38 @@ export default function Chat() {
                     </ScrollArea>
                 </div>
 
-                {/* Input Area */}
-                <div className="border-t p-4 bg-background">
+                <div className="border-t p-4 bg-background shrink-0 relative z-10">
+                    {error && !isLoadingHistory && messages.length > 0 && (
+                        <p className="text-xs text-destructive text-center mb-2">{error}</p>
+                    )}
                     <form
                         onSubmit={handleSubmit}
-                        className="max-w-3xl mx-auto flex items-center space-x-2"
+                        className="max-w-3xl mx-auto flex items-end space-x-2"
                     >
                         <Textarea
                             value={input}
                             onChange={e => setInput(e.target.value)}
-                            placeholder="Type your message..."
-                            className="flex-1 min-h-12 max-h-40 resize-none"
+                            placeholder={
+                                selectedAgentId === null
+                                    ? 'Select a chat to start...'
+                                    : `Message ${selectedAgent?.name || 'agent'}...`
+                            }
+                            className="flex-1 min-h-[48px] max-h-40 resize-none"
                             onKeyDown={e => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
                                     handleSubmit(e);
                                 }
                             }}
+                            disabled={selectedAgentId === null || isSending || isLoadingAgents || isLoadingHistory}
                         />
                         <Button
                             type="submit"
                             size="icon"
-                            disabled={!input.trim()}
+                            disabled={!input.trim() || selectedAgentId === null || isSending || isLoadingAgents || isLoadingHistory}
+                            className="h-12 w-12"
                         >
-                            <Send className="h-4 w-4" />
+                            {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         </Button>
                     </form>
                 </div>
