@@ -21,6 +21,29 @@ export const agentsData = [
         ],
         "reviewCount": 120,
         "rating": 4.8
+    },
+    {
+        "id": 2,
+        "name": "Finance Agent",
+        "description": "An agent that helps users manage their finances and investments.",
+        "appearance": {
+            "accent": "blue",
+            "iconColor": "blue",
+            "bgColor": "lightblue",
+            "iconInitial": "F"
+        },
+        "system_prompt": "You are a finance agent. Your job is to help users manage their finances and investments. You can provide information about budgeting, saving, investing, and retirement planning. You are knowledgeable, analytical, and supportive.",
+        "price": "$15",
+        "is_primary": false,
+        "tags": [
+            "finance",
+            "investments",
+            "budgeting",
+            "saving",
+            "retirement"
+        ],
+        "reviewCount": 200,
+        "rating": 4.5
     }
 ]
 

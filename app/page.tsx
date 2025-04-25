@@ -4,11 +4,18 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Send, MessageSquare, MoreVertical, Loader2, Bot } from 'lucide-react';
+import { Send, MessageSquare, MoreVertical, Loader2, Bot, CloudCog } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { fetchAgents, fetchChatHistory, sendMessage, fetchUser } from '@/lib/api';
+import { fetchAgents, fetchChatHistory, sendMessage, fetchUser, fetchAgent } from '@/lib/api';
 import type { Agent } from '@/lib/data/agents';
 import type { ChatMessage, User } from '@/lib/data/users';
 
@@ -64,6 +71,8 @@ export default function Chat() {
 
                 setUser(userData);
                 setAllAgents(fetchedAgents);
+
+                console.log(allAgents)
 
                 if (userData?.subscribed_agents && fetchedAgents.length > 0) {
                     const subAgents = fetchedAgents.filter(agent =>
@@ -222,21 +231,51 @@ export default function Chat() {
 
                 <div className="h-14 border-b flex items-center justify-between px-6 shrink-0 relative z-10 bg-background/80 backdrop-blur-sm">
                     <div className="flex items-center gap-4">
-                        {selectedAgent ? (
-                            <>
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={selectedAgent.appearance?.iconInitial} alt={selectedAgent.name} />
-                                    <AvatarFallback>
-                                        <Bot size={16} />
-                                    </AvatarFallback>
-                                </Avatar>
-                                <h3 className="font-medium">
-                                    {selectedAgent.name}
-                                </h3>
-                            </>
-                        ) : !isLoadingAgents ? (
-                             <div className="text-muted-foreground">Select a chat</div>
-                        ) : null}
+                        <Select
+                            value={selectedAgentId !== null ? String(selectedAgentId) : undefined}
+                            onValueChange={(value) => setSelectedAgentId(value ? parseInt(value, 10) : null)}
+                            disabled={isLoadingAgents || subscribedAgents.length === 0}
+                        >
+                            <SelectTrigger className="w-[250px] h-9 pl-2 pr-3">
+                                <SelectValue placeholder={isLoadingAgents ? "Loading agents..." : "Select a chat"}>
+                                    {selectedAgent ? (
+                                        <div className="flex items-center gap-2">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarImage src={selectedAgent.appearance?.iconInitial} alt={selectedAgent.name} />
+                                                <AvatarFallback>
+                                                    {selectedAgent.appearance?.iconInitial || <Bot size={12} />}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span className="font-medium text-sm truncate">{selectedAgent.name}</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-muted-foreground text-sm">
+                                            {isLoadingAgents ? "Loading..." : "Select a chat"}
+                                        </span>
+                                    )}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {subscribedAgents.map((agent) => (
+                                    <SelectItem key={agent.id} value={String(agent.id)}>
+                                        <div className="flex items-center gap-2">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarImage src={agent.appearance?.iconInitial} alt={agent.name} />
+                                                <AvatarFallback>
+                                                    {agent.appearance?.iconInitial || <Bot size={12} />}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span className="text-sm">{agent.name}</span>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                                {subscribedAgents.length === 0 && !isLoadingAgents && (
+                                    <div className="p-2 text-center text-sm text-muted-foreground">
+                                        No subscribed agents.
+                                    </div>
+                                )}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="flex items-center gap-2 ml-auto">
                         <ThemeToggle />
@@ -265,7 +304,7 @@ export default function Chat() {
                                     />
                                     <h3 className="text-xl font-medium">Select a chat</h3>
                                     <p className="text-muted-foreground mt-2 max-w-md">
-                                        Choose an agent from the sidebar to start chatting.
+                                        Choose an agent from the sidebar or header dropdown to start chatting.
                                     </p>
                                 </div>
                             ) : messages.length === 0 && !isLoadingHistory ? (
@@ -287,16 +326,18 @@ export default function Chat() {
                                         <div
                                             key={message.timestamp + '-' + index}
                                             className={cn(
-                                                'flex',
+                                                'flex items-start',
                                                 message.role === 'user'
                                                     ? 'justify-end'
                                                     : 'justify-start'
                                             )}
                                         >
                                             {message.role === 'assistant' && selectedAgent && (
-                                                <Avatar className="h-7 w-7 mr-2 shrink-0">
+                                                <Avatar className="h-7 w-7 mr-2 shrink-0 mt-1">
                                                     <AvatarImage src={selectedAgent.appearance?.iconInitial} alt={selectedAgent.name} />
-                                                    <AvatarFallback><Bot size={14} /></AvatarFallback>
+                                                    <AvatarFallback>
+                                                        {selectedAgent.appearance?.iconInitial || <Bot size={14} />}
+                                                    </AvatarFallback>
                                                 </Avatar>
                                             )}
                                             <div

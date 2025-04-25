@@ -5,7 +5,7 @@ export const usersData = [
         "email": "johndoe@gmail.com",
         "phone": "+1-202-555-0173",
         "password": "password123",
-        "subscribed_agents": [1],
+        "subscribed_agents": [1,2],
         "chat_history": {
             "1": [
                 {
@@ -15,6 +15,16 @@ export const usersData = [
                 {
                     "message": "Sure, I can help you with that. Can you provide your order number?",
                     "timestamp": "2023-10-01T10:01:00Z"
+                }
+            ],
+            "2": [
+                {
+                    "message": "What is the weather like today?",
+                    "timestamp": "2023-10-02T11:00:00Z"
+                },
+                {
+                    "message": "The weather is sunny with a high of 75°F.",
+                    "timestamp": "2023-10-02T11:01:00Z"
                 }
             ]
         }
