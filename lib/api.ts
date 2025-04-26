@@ -3,11 +3,12 @@ import { usersData } from '@/lib/data/users';
 import { authAxios } from './auth';
 import { API_ENDPOINTS } from './api-config';
 
-interface ChatMessage {
+export interface ChatMessage {
     role: 'user' | 'assistant';
     message: string;
-    context: string;
+    context?: string; // Context might be sent by user, received from assistant? Clarify backend structure.
     timestamp: string;
+    mergedAgentIds?: number[]; // Added to indicate a merged response
 }
 
 interface ChatHistory {
@@ -16,18 +17,28 @@ interface ChatHistory {
 
 export interface User {
     id: number;
-    name: string;
-    subscribed_agents?: number[];
-    chat_history?: ChatHistory;
+    email: string; // Or other basic identifier if needed
 }
 
 export interface Agent {
     id: number;
     name: string;
     description: string;
-    created_at: string;
-    updated_at: string;
+    created_at: string; // Added from backend model
+    updated_at: string; // Added from backend model
     system_prompt: string;
+    appearance?: { // Keep optional as it might be added frontend-side
+        accent?: string;
+        iconColor?: string;
+        bgColor?: string;
+        iconInitial?: string;
+    };
+    is_primary?: boolean; // Keep optional if not always present
+    category?: string; // Added from backend model (assuming category is used for filtering)
+    is_public?: boolean; // Added from backend model
+    creator?: number; // Added from backend model (user ID)
+    rating?: number; // Added for sorting/display
+    price?: string | number; // Allow string or number based on backend
 }
 
 export interface PaginatedResponse<T> {
@@ -86,6 +97,14 @@ export interface PaginatedAgentTemplateResponse {
     results: AgentTemplate[];
 }
 
+export interface MergeQueryResponse {
+    response: string;
+}
+
+export interface UserContext {
+    context: string;
+}
+
 export const fetchAgents = async (): Promise<PaginatedResponse<Agent>> => {
     try {
         const response = await authAxios.get<PaginatedResponse<Agent>>(
@@ -108,7 +127,11 @@ export const fetchAgentById = async (id: number): Promise<Agent | null> => {
         const response = await authAxios.get<Agent>(
             `${API_ENDPOINTS.agents}/${id}/`
         );
-        return response.data;
+        const agentData = response.data;
+        if (!agentData.appearance) {
+            agentData.appearance = { iconInitial: agentData.name.charAt(0).toUpperCase() };
+        }
+        return agentData;
     } catch (error) {
         console.error('Error fetching agent:', error);
         return null;
@@ -140,6 +163,11 @@ export const fetchUserById = async (id: number): Promise<ApiUser | null> => {
         return response.data;
     } catch (error) {
         console.error('Error fetching user:', error);
+        // If it's a 404, the user might not exist yet or have context
+        if ((error as any).response?.status === 404) {
+            console.log(`User ${id} not found or no context exists.`);
+            return null;
+        }
         return null;
     }
 };
@@ -154,6 +182,26 @@ export const fetchNotifications = async (): Promise<
         return response.data;
     } catch (error) {
         console.error('Error fetching notifications:', error);
+        return {
+            count: 0,
+            next: null,
+            previous: null,
+            results: [],
+        };
+    }
+};
+
+export const fetchUnreadNotifications = async (): Promise<
+    PaginatedResponse<Notification>
+> => {
+    try {
+        const response = await authAxios.get<PaginatedResponse<Notification>>(
+            API_ENDPOINTS.notifications,
+            { params: { is_read: 'false' } } // Filter for unread
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching unread notifications:', error);
         return {
             count: 0,
             next: null,
@@ -207,6 +255,18 @@ export const markNotificationAsRead = async (
     }
 };
 
+export const markAllNotificationsAsRead = async (): Promise<{ success: boolean, count: number }> => {
+    try {
+        const response = await authAxios.post<{ count: number }>(
+            `${API_ENDPOINTS.notifications}/mark-all-read/` // Adjust endpoint if needed
+        );
+        return { success: true, count: response.data.count };
+    } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+        return { success: false, count: 0 };
+    }
+};
+
 export const fetchUserAgentSubscriptions = async (): Promise<
     PaginatedResponse<UserAgentSubscription>
 > => {
@@ -243,10 +303,11 @@ export const fetchUserAgentSubscriptionById = async (
 export const subscribeToAgent = async (userId: number, agentId: number) => {
     try {
         const response = await authAxios.post(
-            `${API_ENDPOINTS.userAgentSubscriptions}/`,
+            API_ENDPOINTS.userAgentSubscriptions,
             {
                 user: userId,
                 agent: agentId,
+                user_details: "Subscribed via marketplace",
             }
         );
         return {
@@ -255,7 +316,7 @@ export const subscribeToAgent = async (userId: number, agentId: number) => {
             data: response.data,
         };
     } catch (error: any) {
-        if (error.response && error.response.status === 400) {
+        if (error.response && error.response.status === 400 && error.response.data?.non_field_errors?.includes('unique constraint')) {
             return { success: false, message: 'Already subscribed' };
         }
         console.error('Error subscribing to agent:', error);
@@ -267,59 +328,40 @@ export const searchAndFilterAgents = async (
     searchQuery: string = '',
     tags: string[] = [],
     sortBy: 'rating' | 'price_asc' | 'price_desc' = 'rating'
-) => {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            let filtered = agentsData.filter(agent => {
-                const matchesSearch =
-                    agent.name
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()) ||
-                    agent.description
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()) ||
-                    agent.tags.some(tag =>
-                        tag.toLowerCase().includes(searchQuery.toLowerCase())
-                    );
-                const matchesTags =
-                    tags.length === 0 ||
-                    tags.some(tag =>
-                        agent.tags
-                            .map(t => t.toLowerCase())
-                            .includes(tag.toLowerCase())
-                    );
-                return matchesSearch && matchesTags;
-            });
+): Promise<Agent[]> => {
+    try {
+        const params: Record<string, string | string[]> = {
+            search: searchQuery,
+        };
+        if (tags.length > 0) {
+            params['category'] = tags[0];
+        }
 
-            const sorted = filtered.sort((a, b) => {
-                const priceA = parseFloat(
-                    String(a.price).replace(/[^0-9.-]+/g, '')
-                );
-                const priceB = parseFloat(
-                    String(b.price).replace(/[^0-9.-]+/g, '')
-                );
+        let ordering = '';
+        switch (sortBy) {
+            case 'rating':
+                ordering = '-rating';
+                break;
+            case 'price_asc':
+                ordering = 'price';
+                break;
+            case 'price_desc':
+                ordering = '-price';
+                break;
+        }
+        if (ordering) {
+            params['ordering'] = ordering;
+        }
 
-                switch (sortBy) {
-                    case 'rating':
-                        return (b.rating || 0) - (a.rating || 0);
-                    case 'price_asc':
-                        return (
-                            (isNaN(priceA) ? Infinity : priceA) -
-                            (isNaN(priceB) ? Infinity : priceB)
-                        );
-                    case 'price_desc':
-                        return (
-                            (isNaN(priceB) ? -Infinity : priceB) -
-                            (isNaN(priceA) ? -Infinity : priceA)
-                        );
-                    default:
-                        return 0;
-                }
-            });
-
-            resolve(sorted);
-        }, 500);
-    });
+        const response = await authAxios.get<PaginatedResponse<Agent>>(
+            API_ENDPOINTS.agents,
+            { params }
+        );
+        return response.data.results || [];
+    } catch (error) {
+        console.error('Error searching/filtering agents:', error);
+        return [];
+    }
 };
 
 export const checkSubscription = async (userId: number, agentId: number) => {
@@ -337,7 +379,7 @@ export const checkSubscription = async (userId: number, agentId: number) => {
     }
 };
 
-export const fetchChatHistory = async (userId: number, agentId: number) => {
+export const fetchChatHistory = async (userId: number, agentId: number): Promise<ChatMessage[]> => {
     try {
         const response = await authAxios.get(
             `${API_ENDPOINTS.agents}/${agentId}/chat-history/`,
@@ -345,7 +387,12 @@ export const fetchChatHistory = async (userId: number, agentId: number) => {
                 params: { user: userId },
             }
         );
-        return response.data;
+        if (Array.isArray(response.data)) {
+            return response.data as ChatMessage[];
+        } else {
+            console.warn('Received non-array chat history:', response.data);
+            return (response.data?.results as ChatMessage[]) || [];
+        }
     } catch (error) {
         console.error('Error fetching chat history:', error);
         return [];
@@ -353,21 +400,19 @@ export const fetchChatHistory = async (userId: number, agentId: number) => {
 };
 
 export const sendMessage = async (
-    userId: number,
     agentId: number,
     messageContent: string,
-    contextContent: string
-) => {
+    contextContent?: string
+): Promise<ChatMessage | null> => {
     try {
         const response = await authAxios.post(
             `${API_ENDPOINTS.agents}/${agentId}/messages/`,
             {
-                user: userId,
                 message: messageContent,
                 context: contextContent,
             }
         );
-        return response.data;
+        return response.data as ChatMessage;
     } catch (error) {
         console.error('Error sending message:', error);
         return null;
@@ -393,9 +438,9 @@ export const postAgentQuery = async (
 export const postAgentsMergeQuery = async (data: {
     agent_ids: number[];
     query: string;
-}): Promise<any> => {
+}): Promise<MergeQueryResponse | null> => {
     try {
-        const response = await authAxios.post(
+        const response = await authAxios.post<MergeQueryResponse>(
             `${API_ENDPOINTS.agents}/merge-query/`,
             data
         );
@@ -420,5 +465,31 @@ export const fetchAgentTemplates = async (): Promise<PaginatedAgentTemplateRespo
             previous: null,
             results: [],
         };
+    }
+};
+
+// --- User Context Functions ---
+
+export const fetchUserContext = async (userId: number): Promise<string | null> => {
+    try {
+        const response = await authAxios.get<UserContext>(API_ENDPOINTS.userContext(userId));
+        return response.data.context;
+    } catch (error) {
+        if ((error as any).response?.status === 404) {
+            console.log(`User ${userId} context not found.`);
+            return null;
+        }
+        console.error('Error fetching user context:', error);
+        return null;
+    }
+};
+
+export const saveUserContext = async (userId: number, context: string): Promise<boolean> => {
+    try {
+        await authAxios.put<UserContext>(API_ENDPOINTS.userContext(userId), { context });
+        return true;
+    } catch (error) {
+        console.error('Error saving user context:', error);
+        return false;
     }
 };

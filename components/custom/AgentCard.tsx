@@ -1,70 +1,88 @@
-import React from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Star } from "lucide-react";
+import React from 'react';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Star } from 'lucide-react';
+import type { Agent } from '@/lib/api';
 
-type Agent = {
-  id: number;
-  name: string;
-  description: string;
-  appearance: {
-    accent: string;
-    iconColor: string;
-    bgColor: string;
-    iconInitial: string;
-  };
-  system_prompt: string;
-  price: string;
-  is_primary: boolean;
-  tags: string[];
-  reviewCount: number;
-  rating: number;
+interface AgentCardProps {
+    agent: Agent;
+    onSubscribeClick: (agent: Agent) => void;
+    isSubscribed: boolean; // New prop
+}
+
+const AgentCard: React.FC<AgentCardProps> = ({ agent, onSubscribeClick, isSubscribed }) => {
+    const formatPrice = (price: string | number | undefined): string => {
+        if (price === undefined || price === null) return 'Free';
+        const numPrice = Number(price);
+        if (isNaN(numPrice) || numPrice === 0) return 'Free';
+        return `$${numPrice.toFixed(2)}/mo`;
+    };
+
+    return (
+        <Card className="flex flex-col h-full">
+            <CardHeader className="flex flex-row items-start gap-4 pb-3">
+                <Avatar className="h-12 w-12">
+                    <AvatarImage
+                        src={agent.appearance?.iconInitial}
+                        alt={agent.name}
+                    />
+                    <AvatarFallback>
+                        {agent.name?.charAt(0).toUpperCase() || 'A'}
+                    </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                    <CardTitle className="text-lg">{agent.name}</CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">
+                        By {agent.creator || 'Unknown Creator'}
+                    </CardDescription>
+                    {agent.category && (
+                        <Badge variant="outline" className="mt-1 text-xs">
+                            {agent.category}
+                        </Badge>
+                    )}
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow">
+                <p className="text-sm text-muted-foreground line-clamp-3">
+                    {agent.description}
+                </p>
+            </CardContent>
+            <CardFooter className="flex justify-between items-center pt-4 border-t">
+                <div className="flex items-center gap-1">
+                    {agent.rating !== undefined && agent.rating !== null ? (
+                        <>
+                            <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                            <span className="text-sm font-medium">
+                                {agent.rating.toFixed(1)}
+                            </span>
+                        </>
+                    ) : (
+                        <span className="text-sm text-muted-foreground">No rating</span>
+                    )}
+                    <span className="text-sm text-muted-foreground mx-1">·</span>
+                    <span className="text-sm font-semibold">
+                        {formatPrice(agent.price)}
+                    </span>
+                </div>
+                <Button
+                    size="sm"
+                    onClick={() => onSubscribeClick(agent)}
+                    disabled={isSubscribed} // Disable if subscribed
+                >
+                    {isSubscribed ? 'Subscribed' : 'Subscribe'}
+                </Button>
+            </CardFooter>
+        </Card>
+    );
 };
 
-export default function AgentCard({ agent, onBuy }: { agent: Agent; onBuy: () => void }) {
-  return (
-    <Card className="flex flex-col h-full shadow-lg hover:shadow-2xl border-2 border-transparent hover:border-primary/40 transition group">
-      <CardHeader className="flex flex-col items-start pb-2">
-        <div className="flex items-center gap-2 w-full">
-          <div 
-            className="w-12 h-12 rounded-lg flex items-center justify-center text-lg font-semibold"
-            style={{ 
-              backgroundColor: agent.appearance.bgColor,
-              color: agent.appearance.iconColor 
-            }}
-          >
-            {agent.appearance.iconInitial}
-          </div>
-          <div className="flex-1">
-            <CardTitle className="text-xl">{agent.name}</CardTitle>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="flex items-center">
-                <Star className="w-4 h-4 fill-yellow-400 stroke-yellow-400 mr-1" />
-                {agent.rating}
-              </div>
-              <span>•</span>
-              <span>{agent.reviewCount} reviews</span>
-            </div>
-          </div>
-        </div>
-        <CardDescription className="mt-2 line-clamp-2">
-          {agent.description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1">
-        <div className="flex flex-wrap gap-1">
-          {agent.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      </CardContent>
-      <CardFooter className="flex items-center justify-between">
-        <span className="text-lg font-bold">{agent.price}</span>
-        <Button onClick={onBuy}>Subscribe</Button>
-      </CardFooter>
-    </Card>
-  );
-}
+export default AgentCard;

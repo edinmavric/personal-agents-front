@@ -48,6 +48,7 @@ export default function LoginPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
             setIsSubmitting(true);
+            // Calls the login function from AuthContext
             await login(values);
         } catch (error: any) {
             console.error('Login error:', error);
@@ -59,6 +60,13 @@ export default function LoginPage() {
             setIsSubmitting(false);
         }
     }
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            router.push('/');
+        }
+    }, [isAuthenticated, user, router]);
 
     return (
         <div className="flex items-center justify-center min-h-screen">
@@ -83,8 +91,9 @@ export default function LoginPage() {
                                         <FormLabel>Email</FormLabel>
                                         <FormControl>
                                             <Input
-                                                placeholder="email@example.com"
+                                                placeholder="you@example.com"
                                                 {...field}
+                                                disabled={isSubmitting}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -102,6 +111,7 @@ export default function LoginPage() {
                                                 type="password"
                                                 placeholder="••••••••"
                                                 {...field}
+                                                disabled={isSubmitting}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -118,13 +128,10 @@ export default function LoginPage() {
                         </form>
                     </Form>
                 </CardContent>
-                <CardFooter className="flex flex-col space-y-2">
-                    <p className="text-sm text-center text-gray-500">
+                <CardFooter className="flex flex-col items-center space-y-2">
+                    <p className="text-sm text-muted-foreground">
                         Don't have an account?{' '}
-                        <Link
-                            href="/register"
-                            className="text-blue-500 hover:underline"
-                        >
+                        <Link href="/signup" className="text-primary hover:underline">
                             Sign up
                         </Link>
                     </p>

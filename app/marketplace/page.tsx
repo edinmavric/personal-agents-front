@@ -1,6 +1,7 @@
 'use client'
-import React, { useState, useEffect } from "react";
-import { searchAndFilterAgents, subscribeToAgent } from "@/lib/api";
+import React, { useState, useEffect, useCallback } from "react";
+import { searchAndFilterAgents, subscribeToAgent, fetchUserAgentSubscriptions } from "@/lib/api";
+import type { Agent } from "@/lib/api";
 import AgentCard from "@/components/custom/AgentCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,14 +22,17 @@ const categories = [
   "Other"
 ];
 
+const USER_ID = 1;
+
 export default function MarketplacePage() {
-  const [agents, setAgents] = useState<any[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSort, setSelectedSort] = useState<'rating' | 'price_asc' | 'price_desc'>('rating');
   const [isLoading, setIsLoading] = useState(true);
-  const [modalAgent, setModalAgent] = useState<any | null>(null);
+  const [modalAgent, setModalAgent] = useState<Agent | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [subscribedAgentIds, setSubscribedAgentIds] = useState<Set<number>>(new Set());
   const { theme, setTheme } = useTheme();
   const userId = 1;
   const [mounted, setMounted] = useState(false);
@@ -37,40 +41,51 @@ export default function MarketplacePage() {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    const fetchFilteredAgents = async () => {
-      setIsLoading(true);
-      try {
-        const tags = selectedCategory ? [selectedCategory.toLowerCase()] : [];
-        const filteredAgents = await searchAndFilterAgents(
-          search,
-          tags,
-          selectedSort
-        );
-        setAgents(filteredAgents as any[]);
-      } catch (error) {
-        console.error('Error fetching agents:', error);
-        toast.error("Failed to load agents.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchFilteredAgents();
+  const fetchFilteredAgents = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const tags = selectedCategory ? [selectedCategory] : [];
+      const [filteredAgents, subscriptionsResponse] = await Promise.all([
+        searchAndFilterAgents(search, tags, selectedSort),
+        fetchUserAgentSubscriptions()
+      ]);
+      setAgents(filteredAgents);
+      const subIds = new Set(subscriptionsResponse.results.map(sub => sub.agent));
+      setSubscribedAgentIds(subIds);
+    } catch (error) {
+      console.error('Error fetching agents or subscriptions:', error);
+      toast.error("Failed to load agents or subscription status.");
+      setAgents([]);
+      setSubscribedAgentIds(new Set());
+    } finally {
+      setIsLoading(false);
+    }
   }, [search, selectedCategory, selectedSort]);
+
+  useEffect(() => {
+    fetchFilteredAgents();
+  }, [fetchFilteredAgents]);
 
   const handleConfirmSubscription = async () => {
     if (!modalAgent) return;
 
+    if (subscribedAgentIds.has(modalAgent.id)) {
+      toast.info("You are already subscribed to this agent.");
+      setModalAgent(null);
+      return;
+    }
+
     setIsSubscribing(true);
     try {
-      await subscribeToAgent(userId, modalAgent.id);
-      toast.success(`Successfully subscribed to ${modalAgent.name}!`);
-      setModalAgent(null);
+      const result = await subscribeToAgent(USER_ID, modalAgent.id);
 
-      const tags = selectedCategory ? [selectedCategory.toLowerCase()] : [];
-      const filteredAgents = await searchAndFilterAgents(search, tags, selectedSort);
-      setAgents(filteredAgents as any[]);
+      if (result.success) {
+        toast.success(`Successfully subscribed to ${modalAgent.name}!`);
+        setSubscribedAgentIds(prev => new Set(prev).add(modalAgent.id));
+        setModalAgent(null);
+      } else {
+        toast.error(result.message || `Failed to subscribe to ${modalAgent.name}.`);
+      }
     } catch (error) {
       console.error("Failed to subscribe:", error);
       toast.error(`Failed to subscribe to ${modalAgent.name}.`);
@@ -107,7 +122,7 @@ export default function MarketplacePage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search for AI agents by name, description or tag..."
+              placeholder="Search for AI agents..."
               className="w-full pl-10 bg-card border-input shadow-sm"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -151,15 +166,26 @@ export default function MarketplacePage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {isLoading ? (
-            <div className="col-span-full text-center text-muted-foreground py-10">
-              Loading agents...
-            </div>
+            Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="bg-card p-6 rounded-lg shadow-md border border-border/20 flex flex-col justify-between animate-pulse">
+                <div className="space-y-3">
+                  <div className="h-6 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-full"></div>
+                  <div className="h-4 bg-muted rounded w-5/6"></div>
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-border/10">
+                  <div className="h-4 bg-muted rounded w-1/4"></div>
+                  <div className="h-9 bg-muted rounded w-1/3"></div>
+                </div>
+              </div>
+            ))
           ) : agents.length > 0 ? (
             agents.map((agent) => (
               <AgentCard
                 key={agent.id}
                 agent={agent}
-                onBuy={() => setModalAgent(agent)}
+                isSubscribed={subscribedAgentIds.has(agent.id)}
+                onSubscribeClick={() => setModalAgent(agent)}
               />
             ))
           ) : (
