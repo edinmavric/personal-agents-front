@@ -31,6 +31,11 @@ export default function MarketplacePage() {
   const [isSubscribing, setIsSubscribing] = useState(false);
   const { theme, setTheme } = useTheme();
   const userId = 1;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const fetchFilteredAgents = async () => {
@@ -94,7 +99,7 @@ export default function MarketplacePage() {
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="ml-4"
           >
-            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {mounted && (theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />)}
           </Button>
         </div>
         <div className="flex flex-col md:flex-row gap-4 mb-8 items-center">
