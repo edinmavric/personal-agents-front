@@ -21,6 +21,7 @@ import {
     MoreVertical,
     Loader2,
     Bot,
+    Mic,
 } from 'lucide-react';
 import {
     fetchAgents,
@@ -40,6 +41,14 @@ import {
     SidebarGroupContent,
     SidebarTrigger,
 } from '@/components/ui/sidebar';
+import VoiceComponent from '@/components/VoiceComponent';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 
 const getGlowColorClass = (accent?: string): string => {
     switch (accent?.toLowerCase()) {
@@ -100,6 +109,7 @@ export default function Chat() {
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -117,10 +127,12 @@ export default function Chat() {
                     await Promise.all([fetchUserById(USER_ID), fetchAgents()]);
 
                 const userData = userDataResponse as User | null;
-                const fetchedAgents =
-                    (fetchedAgentsResponse && Array.isArray((fetchedAgentsResponse as any).results)
+                const fetchedAgents = (
+                    fetchedAgentsResponse &&
+                    Array.isArray((fetchedAgentsResponse as any).results)
                         ? (fetchedAgentsResponse as any).results
-                        : []) as Agent[];
+                        : []
+                ) as Agent[];
 
                 setUser(userData);
                 setAllAgents(fetchedAgents);
@@ -550,6 +562,32 @@ export default function Chat() {
                             onSubmit={handleSubmit}
                             className="max-w-3xl mx-auto flex items-end space-x-2"
                         >
+                            {/* Modal trigger button */}
+                            <Dialog
+                                open={isVoiceModalOpen}
+                                onOpenChange={setIsVoiceModalOpen}
+                            >
+                                <DialogTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="outline"
+                                        className="h-12 w-12 shrink-0"
+                                        aria-label="Open voice chat"
+                                        tabIndex={-1}
+                                    >
+                                        <Mic className="h-5 w-5" />
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-lg w-full">
+                                    <DialogHeader>
+                                        <DialogTitle>
+                                            Voice Chat (ElevenLabs)
+                                        </DialogTitle>
+                                    </DialogHeader>
+                                    <VoiceComponent />
+                                </DialogContent>
+                            </Dialog>
                             <Textarea
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
