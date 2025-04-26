@@ -6,8 +6,8 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { useAgent } from '@/lib/AgentContext';
 
 const navLinks = [
+    { href: '/', label: 'Chat' },
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/chat', label: 'Chat' },
     { href: '/marketplace', label: 'Marketplace' },
 ];
 
@@ -21,7 +21,7 @@ const Header = () => {
     }
 
     const handleNav = (base: string) => {
-        if (selectedAgent?.id) {
+        if (typeof selectedAgent?.id === 'number') {
             router.push(`${base}/${selectedAgent.id}`);
         }
     };
@@ -31,7 +31,7 @@ const Header = () => {
             <header className="flex h-20 w-full shrink-0 items-center px-4 md:px-6">
                 <Link
                     href={
-                        selectedAgent?.id
+                        typeof selectedAgent?.id === 'number'
                             ? `/dashboard/${selectedAgent.id}`
                             : '/dashboard'
                     }
@@ -61,7 +61,7 @@ const Header = () => {
                                     }
                                 `}
                                 onClick={() => handleNav(link.href)}
-                                disabled={!selectedAgent?.id}
+                                disabled={typeof selectedAgent?.id !== 'number'}
                             >
                                 {link.label}
                             </button>

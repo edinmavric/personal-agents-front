@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export interface Agent {
-    id: string | number;
+    id: number;
     name: string;
     description?: string;
 }
@@ -16,7 +16,11 @@ interface AgentContextType {
 const AgentContext = createContext<AgentContextType | undefined>(undefined);
 
 export const AgentProvider = ({ children }: { children: ReactNode }) => {
-    const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+    const [selectedAgent, setSelectedAgent] = useState<Agent | null>({
+        id: 1,
+        name: '',
+        description: '',
+    });
 
     return (
         <AgentContext.Provider value={{ selectedAgent, setSelectedAgent }}>
