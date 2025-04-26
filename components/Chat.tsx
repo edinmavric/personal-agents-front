@@ -37,15 +37,12 @@ export default function Chat({ agent }: ChatProps) {
             <h2 className="text-xl font-semibold text-foreground mb-4">
               {agent.name}
             </h2>
-            {/* Chat messages would go here */}
             <div className="space-y-4">
-              {/* Example message */}
               <div className="bg-muted p-3 rounded-lg text-foreground">
                 <p>How can I help you today?</p>
               </div>
             </div>
             
-            {/* Chat input */}
             <div className="mt-6">
               <div className="flex gap-2">
                 <input

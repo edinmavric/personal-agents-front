@@ -6,20 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'; // Still used in left sidebar for consistency, but removed from header
-import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton'; // Assuming you have a Skeleton component
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
@@ -28,41 +21,27 @@ import {
     MoreVertical,
     Loader2,
     Bot,
-    CloudCog,
-    Menu, // Hamburger icon
-    X, // Close icon
-    NotebookPen, // Context icon
 } from 'lucide-react';
 import {
     fetchAgents,
     fetchChatHistory,
     sendMessage,
-    fetchUser,
-    fetchAgent,
+    fetchUserById,
+    fetchAgentById,
 } from '@/lib/api';
 import type { Agent } from '@/lib/data/agents';
 import type { ChatMessage, User } from '@/lib/data/users';
-import {
-    Sheet,
-    SheetContent,
-    SheetTitle,
-    SheetTrigger,
-} from '@/components/ui/sheet';
 import {
     SidebarProvider,
     Sidebar,
     SidebarHeader,
     SidebarContent,
     SidebarGroup,
-    SidebarGroupLabel,
     SidebarGroupContent,
     SidebarTrigger,
 } from '@/components/ui/sidebar';
 
-// --- Helper Functions ---
-
 const getGlowColorClass = (accent?: string): string => {
-    // ... (keep the existing getGlowColorClass function)
     switch (accent?.toLowerCase()) {
         case 'green':
             return 'bg-green-500';
@@ -80,8 +59,6 @@ const getGlowColorClass = (accent?: string): string => {
 };
 
 const USER_ID = 1;
-
-// --- Skeleton Components (Basic Examples) ---
 
 const AgentSkeleton = () => (
     <div className="flex items-center space-x-3 p-3 h-[60px]">
@@ -111,11 +88,9 @@ const MessageSkeleton = ({ isUser = false }: { isUser?: boolean }) => (
     </div>
 );
 
-// --- Main Chat Component ---
-
 export default function Chat() {
     const [input, setInput] = useState('');
-    const [contextInput, setContextInput] = useState(''); // Context text
+    const [contextInput, setContextInput] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [allAgents, setAllAgents] = useState<Agent[]>([]);
     const [subscribedAgents, setSubscribedAgents] = useState<Agent[]>([]);
@@ -139,11 +114,13 @@ export default function Chat() {
             setMessages([]);
             try {
                 const [userDataResponse, fetchedAgentsResponse] =
-                    await Promise.all([fetchUser(USER_ID), fetchAgents()]);
+                    await Promise.all([fetchUserById(USER_ID), fetchAgents()]);
 
                 const userData = userDataResponse as User | null;
                 const fetchedAgents =
-                    (fetchedAgentsResponse as Agent[] | null) ?? [];
+                    (fetchedAgentsResponse && Array.isArray((fetchedAgentsResponse as any).results)
+                        ? (fetchedAgentsResponse as any).results
+                        : []) as Agent[];
 
                 setUser(userData);
                 setAllAgents(fetchedAgents);
@@ -180,20 +157,20 @@ export default function Chat() {
             }
         };
         loadInitialData();
-    }, []); // Run only once on mount
+    }, []);
 
     useEffect(() => {
         if (selectedAgentId === null) {
             setMessages([]);
             setError(null);
-            setIsLoadingHistory(false); // Ensure loading state is off if no agent selected
+            setIsLoadingHistory(false);
             return;
         }
 
         const loadHistory = async () => {
             setIsLoadingHistory(true);
             setError(null);
-            setMessages([]); // Clear previous messages
+            setMessages([]);
             try {
                 const history = await fetchChatHistory(
                     USER_ID,
@@ -211,17 +188,11 @@ export default function Chat() {
             }
         };
         loadHistory();
-    }, [selectedAgentId]); // Reload history when agent changes
+    }, [selectedAgentId]);
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, scrollToBottom]); // Scroll when messages change
-
-    // --- Event Handlers ---
-
-    const handleAgentSelect = (agentId: number) => {
-        setSelectedAgentId(agentId);
-    };
+    }, [messages, scrollToBottom]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -242,7 +213,7 @@ export default function Chat() {
 
         setMessages(prev => [...prev, userMessage]);
         const currentInput = input;
-        const currentContext = contextInput; // Capture context at time of sending
+        const currentContext = contextInput;
         setInput('');
         setIsSending(true);
         setError(null);
@@ -258,33 +229,27 @@ export default function Chat() {
         } catch (err) {
             console.error('Failed to send message:', err);
             setError('Failed to send message. Please try again.');
-            // Revert optimistic update
             setMessages(prev => prev.filter(msg => msg !== userMessage));
-            setInput(currentInput); // Restore input
+            setInput(currentInput);
         } finally {
             setIsSending(false);
         }
     };
 
     const handleUpdateContext = () => {
-        // TODO: Implement API call to save contextInput permanently
-        // e.g., await saveUserContext(USER_ID, contextInput);
         console.log('Updating context (placeholder):', contextInput);
         toast.success('Context updated (placeholder)');
         setContextInput('');
     };
-    // --- Derived State ---
     const selectedAgent = subscribedAgents.find(
         agent => agent.id === selectedAgentId
     );
     const glowColorClass = getGlowColorClass(selectedAgent?.appearance?.accent);
 
-    // --- Render ---
     return (
         <SidebarProvider>
             <div className="flex h-screen w-full overflow-hidden bg-background relative">
                 <Toaster richColors />
-                {/* Left Sidebar: Agents */}
                 <Sidebar
                     side="left"
                     variant="sidebar"
@@ -371,7 +336,6 @@ export default function Chat() {
                     )}
                     <header className="h-14 border-b flex items-center justify-between px-4 md:px-6 shrink-0 relative z-10 bg-background backdrop-blur-sm">
                         <div className="flex items-center gap-2">
-                            {/* Left sidebar trigger */}
                             <SidebarTrigger side="left" />
                             {selectedAgent ? (
                                 <div className="flex items-center gap-2">

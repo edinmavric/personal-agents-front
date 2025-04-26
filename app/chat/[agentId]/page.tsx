@@ -14,7 +14,7 @@ export default function ChatPage({ params }: { params: { agentId: string } }) {
     if (foundAgent) {
       setAgent(foundAgent);
     } else {
-      router.push('/marketplace'); // Redirect if agent not found
+      router.push('/marketplace');
     }
   }, [params.agentId, router]);
 

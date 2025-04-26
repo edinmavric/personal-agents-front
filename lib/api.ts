@@ -221,36 +221,26 @@ export const fetchUserAgentSubscriptionById = async (
 };
 
 export const subscribeToAgent = async (userId: number, agentId: number) => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const agent = agentsData.find(agent => agent.id === agentId);
-            const user = usersData.find(user => user.id === userId) as User;
-
-            if (!agent) {
-                return reject(new Error('Agent not found'));
+    try {
+        const response = await authAxios.post(
+            `${API_ENDPOINTS.userAgentSubscriptions}/`,
+            {
+                user: userId,
+                agent: agentId,
             }
-            if (!user) {
-                return reject(new Error('User not found'));
-            }
-            if (!user.chat_history) {
-                user.chat_history = {};
-            }
-            if (!user.subscribed_agents) {
-                user.subscribed_agents = [];
-            }
-
-            if (!user.subscribed_agents.includes(agentId)) {
-                user.subscribed_agents.push(agentId);
-                const agentIdStr = agentId.toString();
-                if (!user.chat_history[agentIdStr]) {
-                    user.chat_history[agentIdStr] = [];
-                }
-                resolve({ success: true, message: 'Subscribed successfully' });
-            } else {
-                resolve({ success: false, message: 'Already subscribed' });
-            }
-        }, 1000);
-    });
+        );
+        return {
+            success: true,
+            message: 'Subscribed successfully',
+            data: response.data,
+        };
+    } catch (error: any) {
+        if (error.response && error.response.status === 400) {
+            return { success: false, message: 'Already subscribed' };
+        }
+        console.error('Error subscribing to agent:', error);
+        return { success: false, message: 'Subscription failed' };
+    }
 };
 
 export const searchAndFilterAgents = async (
@@ -313,34 +303,33 @@ export const searchAndFilterAgents = async (
 };
 
 export const checkSubscription = async (userId: number, agentId: number) => {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const user = usersData.find(user => user.id === userId);
-            resolve(user?.subscribed_agents?.includes(agentId) || false);
-        }, 500);
-    });
+    try {
+        const response = await authAxios.get(
+            `${API_ENDPOINTS.userAgentSubscriptions}/`,
+            {
+                params: { user: userId, agent: agentId },
+            }
+        );
+        return response.data.count > 0;
+    } catch (error) {
+        console.error('Error checking subscription:', error);
+        return false;
+    }
 };
 
 export const fetchChatHistory = async (userId: number, agentId: number) => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const user = usersData.find(user => user.id === userId);
-            if (!user) {
-                return reject(new Error('User not found'));
+    try {
+        const response = await authAxios.get(
+            `${API_ENDPOINTS.agents}/${agentId}/chat-history/`,
+            {
+                params: { user: userId },
             }
-            if (!user.chat_history) {
-                user.chat_history = {
-                    1: [],
-                    2: [],
-                };
-            }
-            const agentIdStr = agentId.toString();
-            const history =
-                (user.chat_history as { [key: string]: any[] })[agentIdStr] ||
-                [];
-            resolve(history);
-        }, 300);
-    });
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching chat history:', error);
+        return [];
+    }
 };
 
 export const sendMessage = async (
@@ -349,53 +338,50 @@ export const sendMessage = async (
     messageContent: string,
     contextContent: string
 ) => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const user = usersData.find(user => user.id === userId) as User;
-            const agent = agentsData.find(agent => agent.id === agentId);
-
-            if (!user) {
-                return reject(new Error('User not found'));
-            }
-            if (!agent) {
-                return reject(new Error('Agent not found'));
-            }
-            if (!user.chat_history) {
-                user.chat_history = {
-                    1: [],
-                };
-            }
-            // Ensure the key is a string if chat_history keys are expected to be strings
-            const agentIdStr = agentId.toString();
-            if (!user.chat_history[agentIdStr]) {
-                user.chat_history[agentIdStr] = [];
-            }
-
-            const userMessage: ChatMessage = {
-                role: 'user',
+    try {
+        const response = await authAxios.post(
+            `${API_ENDPOINTS.agents}/${agentId}/messages/`,
+            {
+                user: userId,
                 message: messageContent,
                 context: contextContent,
-                timestamp: new Date().toISOString(),
-            };
-            user.chat_history[agentIdStr].push(userMessage);
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error sending message:', error);
+        return null;
+    }
+};
 
-            const agentResponse: ChatMessage = {
-                role: 'assistant',
-                message: `Simulated response from ${agent.name}: Acknowledged "${messageContent}"`,
-                context: contextContent,
-                timestamp: new Date().toISOString(),
-            };
+export const postAgentQuery = async (
+    agentId: number,
+    data: { query: string; user_context: string }
+): Promise<any> => {
+    try {
+        const response = await authAxios.post(
+            `${API_ENDPOINTS.agents}/${agentId}/query/`,
+            data
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error posting agent query:', error);
+        return null;
+    }
+};
 
-            setTimeout(() => {
-                if (!user.chat_history) {
-                    user.chat_history = {};
-                }
-                if (!user.chat_history[agentIdStr]) {
-                    user.chat_history[agentIdStr] = [];
-                }
-                user.chat_history[agentIdStr].push(agentResponse);
-                resolve(agentResponse);
-            }, 700);
-        }, 300);
-    });
+export const postAgentsMergeQuery = async (data: {
+    agent_ids: number[];
+    query: string;
+}): Promise<any> => {
+    try {
+        const response = await authAxios.post(
+            `${API_ENDPOINTS.agents}/merge-query/`,
+            data
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error posting agents merge query:', error);
+        return null;
+    }
 };

@@ -15,14 +15,14 @@ import {
     getCurrentUser,
     refreshToken as authRefreshToken,
     verifyToken as authVerifyToken,
-    User,
     LoginData,
 } from './auth';
+import { User } from './api';
 import { toast } from 'sonner';
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    user: User | null; // User object now contains organization info
+    user: User | null;
     loading: boolean;
     login: (credentials: LoginData) => Promise<void>;
     logout: () => Promise<void>;
@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<User | null>(null); // State holds the full User object
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
@@ -44,9 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
                 const isValid = await authVerifyToken();
                 if (isValid) {
-                    const currentUser = await getCurrentUser(); // Fetches user with org info
+                    const currentUser = await getCurrentUser();
                     if (currentUser) {
-                        setUser(currentUser); // Store user with org info
+                        setUser(currentUser);
                         setIsAuthenticated(true);
                     } else {
                         throw new Error('Failed to fetch user data.');
@@ -59,9 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 try {
                     const refreshed = await authRefreshToken();
                     if (refreshed) {
-                        const currentUser = await getCurrentUser(); // Fetches user with org info
+                        const currentUser = await getCurrentUser();
                         if (currentUser) {
-                            setUser(currentUser); // Store user with org info
+                            setUser(currentUser);
                             setIsAuthenticated(true);
                             console.log(
                                 'Token refresh successful during init.'
