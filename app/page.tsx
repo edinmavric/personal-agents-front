@@ -718,13 +718,13 @@ export default function Chat() {
                             >
                                 Marketplace
                             </Link>
-                            <Link
+                            {/* <Link
                                 href="/shopping-comparison"
                                 className="text-sm font-medium px-3 py-2 rounded hover:bg-muted transition-colors"
                                 style={{ textDecoration: 'none' }}
                             >
                                 Shopping
-                            </Link>
+                            </Link> */}
                             <NotificationBell
                                 notifications={notifications}
                                 unreadCount={unreadNotificationCount}

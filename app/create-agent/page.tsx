@@ -10,13 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { createAgent } from '@/lib/api';
 import type { Agent } from '@/lib/api';
 import { Toaster, toast } from 'sonner';
-import { Checkbox } from '@/components/ui/checkbox'; // Assuming Checkbox component exists
+import { Checkbox } from '@/components/ui/checkbox';
 
-// Define the structure for the form data, excluding fields set by backend or defaults
 type AgentFormData = Omit<Agent, 'id' | 'rating' | 'reviewCount' | 'is_primary' | 'owner' | 'appearance'> & {
-    tagsInput: string; // Use a single string for tags input
-    publish: boolean; // Add publish flag
-    // Add appearance fields if needed for creation
+    tagsInput: string;
+    publish: boolean;
     iconInitial?: string;
     iconColor?: string;
     bgColor?: string;
@@ -28,13 +26,12 @@ export default function CreateAgentPage() {
         name: '',
         description: '',
         system_prompt: '',
-        price: '$0', // Default price or make it configurable
+        price: '$0',
         tagsInput: '',
-        publish: true, // Default to publish? Or false?
-        // Default appearance
+        publish: true,
         iconInitial: '',
-        iconColor: '#000000', // Default black
-        bgColor: '#ffffff', // Default white
+        iconColor: '#000000',
+        bgColor: '#ffffff',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -65,7 +62,6 @@ export default function CreateAgentPage() {
             return;
         }
 
-        // Basic validation for icon initial
         const initial = formData.iconInitial || formData.name?.charAt(0).toUpperCase() || 'A';
 
         const agentDataToSubmit = {
@@ -74,23 +70,19 @@ export default function CreateAgentPage() {
             system_prompt: formData.system_prompt,
             price: formData.price || '$0',
             tags: formData.tagsInput?.split(',').map(tag => tag.trim()).filter(tag => tag) || [],
-            is_published: formData.publish, // Assuming backend field name
-            appearance: { // Structure appearance data
+            is_published: formData.publish,
+            appearance: {
                 iconInitial: initial,
                 iconColor: formData.iconColor || '#000000',
                 bgColor: formData.bgColor || '#ffffff',
-                // Add other appearance fields if they exist in Agent type
             },
-            // Add other fields from AgentFormData if necessary
         };
 
         try {
-            // Type assertion needed if createAgent expects a more specific type
             const result = await createAgent(agentDataToSubmit as any);
 
             if (result.success) {
                 toast.success(`Agent "${result.data?.name}" created successfully!`);
-                // Optionally redirect to the marketplace or the new agent's page
                 router.push('/marketplace');
             } else {
                 toast.error(`Failed to create agent: ${result.message}`);
@@ -172,7 +164,6 @@ export default function CreateAgentPage() {
                             />
                         </div>
 
-                        {/* Appearance Settings */}
                         <fieldset className="border p-4 rounded-md space-y-4">
                              <legend className="text-sm font-medium px-1">Appearance</legend>
                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">

@@ -40,7 +40,6 @@ import {
 } from '@/components/ui/dialog';
 import Link from 'next/link';
 
-// Types
 interface StorePrice {
     store: string;
     price: number;
@@ -57,8 +56,8 @@ interface StoreTotal {
     totalPrice: number;
     itemsAvailable: number;
     totalItems: number;
-    distance: number; // in km
-    actualDistance?: number; // actual distance when location is enabled
+    distance: number;
+    actualDistance?: number;
 }
 
 interface Coordinates {
@@ -66,7 +65,6 @@ interface Coordinates {
     longitude: number;
 }
 
-// Mock data
 const mockStores = [
     {
         name: 'Maxi',
@@ -100,7 +98,6 @@ const mockStores = [
     },
 ];
 
-// Mock price database
 const mockPriceDatabase: Record<string, StorePrice[]> = {
     milk: [
         { store: 'Maxi', price: 1.29, inStock: true },
@@ -294,12 +291,10 @@ export default function ShoppingComparison() {
 
         setIsLoading(true);
 
-        // Simulate API call with setTimeout
         setTimeout(() => {
             try {
                 const itemPrices: ItemPrice[] = [];
 
-                // Get prices for each item
                 shoppingList.forEach(item => {
                     const prices = mockPriceDatabase[item] || [];
                     itemPrices.push({
@@ -308,7 +303,6 @@ export default function ShoppingComparison() {
                     });
                 });
 
-                // Calculate total for each store
                 const totals: StoreTotal[] = mockStores
                     .map(store => {
                         let totalPrice = 0;
@@ -324,7 +318,6 @@ export default function ShoppingComparison() {
                             }
                         });
 
-                        // Calculate actual distance if user location is available
                         let actualDistance;
                         if (locationEnabled && userLocation) {
                             actualDistance = calculateDistance(
@@ -347,7 +340,6 @@ export default function ShoppingComparison() {
                         };
                     })
                     .sort((a, b) => {
-                        // Sort by most items available, then by price
                         if (a.itemsAvailable !== b.itemsAvailable) {
                             return b.itemsAvailable - a.itemsAvailable;
                         }
@@ -376,7 +368,6 @@ export default function ShoppingComparison() {
         return `€${price.toFixed(2)}`;
     };
 
-    // Replace handleLocationClick function
     const handleLocationClick = () => {
         if (locationEnabled) {
             disableLocation();
@@ -547,9 +538,7 @@ export default function ShoppingComparison() {
 
                 <div className="md:col-span-8 space-y-4 sm:space-y-6">
                     {bestStore ? (
-                        // Existing result cards when data is available
                         <>
-                            {/* Best store card */}
                             <Card className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950/30 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
                                 <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
                                     <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -641,7 +630,6 @@ export default function ShoppingComparison() {
                                 </CardContent>
                             </Card>
                             {priceResults.length > 0 && (
-                                // Price comparison card
                                 <Card className="overflow-hidden">
                                     <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
                                         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -756,7 +744,6 @@ export default function ShoppingComparison() {
                                 </Card>
                             )}
                             {storeTotals.length > 0 && (
-                                // Store totals card
                                 <Card>
                                     <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
                                         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -912,7 +899,6 @@ export default function ShoppingComparison() {
                             </div>
                         </div>
                     ) : (
-                        // Loading state
                         <div className="h-64 flex items-center justify-center">
                             <div className="text-center">
                                 <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-500" />
@@ -928,7 +914,6 @@ export default function ShoppingComparison() {
                 </div>
             </div>
 
-            {/* Location confirmation dialog */}
             <Dialog
                 open={showLocationDialog}
                 onOpenChange={setShowLocationDialog}
