@@ -297,7 +297,7 @@ export const fetchUserAgentSubscriptionById = async (
     }
 };
 
-export const subscribeToAgent = async (userId: number, agentId: number) => {
+export const subscribeToAgent = async (userId: number, agentId: number): Promise<{ success: boolean; message: string; data?: any }> => {
     try {
         const response = await authAxios.post(
             API_ENDPOINTS.userAgentSubscriptions,
@@ -486,5 +486,25 @@ export const saveUserContext = async (userId: number, context: string): Promise<
     } catch (error) {
         console.error('Error saving user context:', error);
         return false;
+    }
+};
+
+export const createAgent = async (agentData: Omit<Agent, 'id' | 'rating' | 'reviewCount' | 'is_primary' | 'owner'>): Promise<{ success: boolean; message: string; data?: Agent }> => {
+    try {
+        const payload = {
+            ...agentData,
+        };
+        const response = await authAxios.post<Agent>(API_ENDPOINTS.agents, payload);
+        return {
+            success: true,
+            message: 'Agent created successfully',
+            data: response.data,
+        };
+    } catch (error: any) {
+        console.error('Error creating agent:', error.response?.data || error.message);
+        return {
+            success: false,
+            message: error.response?.data?.detail || 'Agent creation failed',
+        };
     }
 };
