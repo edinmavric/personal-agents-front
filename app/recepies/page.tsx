@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function RecipeFinderPage() {
     return (
-        <main className="py-8 min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-green-950/20 dark:to-black/95">
+        <main className="py-8 min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center dark:from-green-950/20 dark:to-black/95">
             <div className="container">
                 <h1 className="text-3xl font-bold text-green-800 dark:text-green-400 mb-2 text-center">
                     Smart Recipe Finder

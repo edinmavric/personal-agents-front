@@ -705,11 +705,25 @@ export default function Chat() {
 
                         <div className="flex items-center gap-1 md:gap-2 ml-auto">
                             <Link
+                                href="/dashboard"
+                                className="text-sm font-medium px-3 py-2 rounded hover:bg-muted transition-colors"
+                                style={{ textDecoration: 'none' }}
+                            >
+                                Dashboard
+                            </Link>
+                            <Link
                                 href="/marketplace"
                                 className="text-sm font-medium px-3 py-2 rounded hover:bg-muted transition-colors"
                                 style={{ textDecoration: 'none' }}
                             >
                                 Marketplace
+                            </Link>
+                            <Link
+                                href="/recepies"
+                                className="text-sm font-medium px-3 py-2 rounded hover:bg-muted transition-colors"
+                                style={{ textDecoration: 'none' }}
+                            >
+                                Recepies
                             </Link>
                             <NotificationBell
                                 notifications={notifications}
