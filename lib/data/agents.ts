@@ -52,13 +52,13 @@ export interface Agent {
     name: string;
     description: string;
     appearance: {
-        accent: string; // e.g., "green", "blue" - used for glow
+        accent: string;
         iconColor: string;
         bgColor: string;
         iconInitial: string;
     };
     system_prompt: string;
-    price: string; // Or number if parsed
+    price: string;
     is_primary: boolean;
     tags: string[];
     reviewCount: number;
