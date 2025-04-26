@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     searchAndFilterAgents,
@@ -15,10 +16,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sun, Moon, Search, Filter } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { Search, Filter, PlusCircle } from 'lucide-react';
 import ConfirmBuyModal from '@/components/custom/ConfirmBuyModal';
 import { Toaster, toast } from 'sonner';
+import Link from 'next/link';
 
 const categories = [
     'Productivity',
@@ -48,8 +49,6 @@ export default function MarketplacePage() {
     const [subscribedAgentIds, setSubscribedAgentIds] = useState<Set<number>>(
         new Set()
     );
-    const { theme, setTheme } = useTheme();
-    const userId = 1;
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -202,6 +201,15 @@ export default function MarketplacePage() {
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+                    <Link href="/create-agent">
+                        <Button
+                            
+                            className="flex items-center gap-2 font-semibold"
+                        >
+                            <PlusCircle className="w-4 h-4" />
+                            Create Your Own Personalized Agent!
+                        </Button>
+                    </Link>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {isLoading ? (
