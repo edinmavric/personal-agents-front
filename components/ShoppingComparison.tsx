@@ -426,7 +426,7 @@ export default function ShoppingComparison() {
                     <Button
                         asChild
                         variant="outline"
-                        className="text-xs sm:text-sm flex-1 sm:flex-none border-green-600 hover:text-green-700 hover:bg-green-600 text-white hover:border-green-700"
+                        className="text-xs sm:text-sm flex-1 sm:flex-none border-green-600 text-green-700 hover:bg-green-50 hover:text-green-800 hover:border-green-700 dark:border-green-600 dark:text-green-200 dark:hover:bg-green-800/30 dark:hover:text-green-100 transition-colors"
                         size="sm"
                     >
                         <Link href="/recepies">Smart Recepies</Link>

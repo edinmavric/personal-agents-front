@@ -158,17 +158,10 @@ export default function SmartFridge() {
                 },
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to get quick recipes');
-            }
-
             const data = await response.json();
             setQuickRecipes(data.recipes);
             toast.success('Here are some recipe ideas to inspire you!');
         } catch (error) {
-            console.error('Error getting quick recipes:', error);
-            toast.error('Something went wrong. Please try again.');
-
             setQuickRecipes([
                 {
                     id: 'q1',

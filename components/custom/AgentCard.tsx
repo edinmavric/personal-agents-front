@@ -48,7 +48,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
                     <CardDescription className="text-xs text-muted-foreground">
                         By{' '}
                         {agent.creator
-                            ? `User #${agent.creator}`
+                            ? `User ${agent.creator.first_name} ${agent.creator.last_name}`
                             : 'Unknown Creator'}
                     </CardDescription>
                     {agent.category && (
