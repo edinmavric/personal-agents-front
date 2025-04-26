@@ -38,6 +38,7 @@ import {
   postAgentsMergeQuery,
   fetchUserContext,
   saveUserContext,
+  fetchChatHistory,
 } from "@/lib/api";
 import type { Agent, ChatMessage, ApiUser, Notification } from "@/lib/api";
 import {
@@ -307,13 +308,10 @@ export default function Chat() {
       setError(null);
       setMessages([]);
       try {
-        // Replace fetchChatHistory with mock empty array
-        // const history = await fetchChatHistory(USER_ID, selectedAgentId);
-        const history: ChatMessage[] = []; // Return empty history array
+        const history = await fetchChatHistory(USER_ID, selectedAgentId);
         setMessages(history);
 
-        // Optional: log that we're using mock history
-        console.log("Using mocked empty chat history");
+        console.log("Fetched chat history for agent:", selectedAgentId);
       } catch (err) {
         console.error("Failed to fetch chat history:", err);
         setError("Failed to load chat history. Please try again later.");

@@ -393,17 +393,33 @@ export const fetchChatHistory = async (
   agentId: number
 ): Promise<ChatMessage[]> => {
   try {
-    const response = await authAxios.get(
-      `${API_ENDPOINTS.agents}/${agentId}/chat-history/`,
-      {
-        params: { user: userId },
-      }
-    );
-    if (Array.isArray(response.data)) {
+    const response = await authAxios.get<
+      ChatMessage[] | PaginatedResponse<ChatMessage>
+    >(`${API_ENDPOINTS.agents}${agentId}/chat-history/`, {
+      params: { user: userId },
+    });
+
+    // Check if the response is paginated
+    if (
+      typeof response.data === "object" &&
+      response.data !== null &&
+      "results" in response.data &&
+      Array.isArray((response.data as PaginatedResponse<ChatMessage>).results)
+    ) {
+      return (response.data as PaginatedResponse<ChatMessage>)
+        .results as ChatMessage[];
+    }
+    // Check if the response is a direct array (non-paginated)
+    else if (Array.isArray(response.data)) {
       return response.data as ChatMessage[];
-    } else {
-      console.warn("Received non-array chat history:", response.data);
-      return (response.data?.results as ChatMessage[]) || [];
+    }
+    // Handle unexpected formats
+    else {
+      console.warn(
+        "Received unexpected chat history format:",
+        response.data
+      );
+      return [];
     }
   } catch (error) {
     console.error("Error fetching chat history:", error);
