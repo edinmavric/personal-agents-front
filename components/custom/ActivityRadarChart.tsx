@@ -38,7 +38,7 @@ export function Component({ data }: ActivityRadarChartProps) {
   const radarColor = "hsl(142.1 70.6% 45.3%)";
 
   return (
-    <Card className="h-full max-h-[500px] flex flex-col">
+    <Card className="h-full max-h-[500px] flex flex-col pb-20">
       <CardHeader className="items-center pb-4">
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-5 w-5 text-green-600" /> Activity Distribution

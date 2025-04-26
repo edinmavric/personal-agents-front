@@ -237,11 +237,20 @@ export default function HealthDashboard({}: HealthDashboardProps) {
           </CardContent>
         </Card>
       </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 min-h-[400px]">
-        <div className="lg:col-span-1 flex flex-col">
-          <WeeklyActivityChart data={weeklyActivity} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 min-h-[500px] h-[500px]">
+        <div className="flex flex-1 h-full min-w-0 basis-0 overflow-hidden">
+          <div className="flex-1 h-full">
+            <WeeklyActivityChart data={weeklyActivity} />
+          </div>
         </div>
-        <div className="lg:col-span-1 flex flex-col">
+        <div className="flex flex-1 h-full min-w-0 basis-0 overflow-hidden">
+          <div className="flex-1 h-full">
+            <ActivityRadarChart data={activityRadarData} />
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col min-h-[450px] h-[450px] overflow-hidden">
+        <div className="flex-1 h-full">
           <ScreenTimeChart
             data={[
               { app: "Social", minutes: 120, color: "#6366f1" },
@@ -250,9 +259,6 @@ export default function HealthDashboard({}: HealthDashboardProps) {
               { app: "Other", minutes: 30, color: "#a3e635" },
             ]}
           />
-        </div>
-        <div className="lg:col-span-1 flex flex-col">
-          <ActivityRadarChart data={activityRadarData} />
         </div>
       </div>
     </div>
