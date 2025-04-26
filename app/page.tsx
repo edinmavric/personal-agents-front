@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
@@ -22,16 +23,24 @@ import {
     Loader2,
     Bot,
     Mic,
+    Users,
+    X,
 } from 'lucide-react';
 import {
     fetchAgents,
     fetchChatHistory,
     sendMessage,
     fetchUserById,
-    fetchAgentById,
+    fetchUserAgentSubscriptions,
+    postAgentsMergeQuery,
+    fetchUserContext,
+    saveUserContext,
+    fetchUnreadNotifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    fetchNotifications,
 } from '@/lib/api';
-import type { Agent } from '@/lib/data/agents';
-import type { ChatMessage, User } from '@/lib/data/users';
+import type { Agent, ChatMessage, ApiUser, MergeQueryResponse, Notification } from '@/lib/api';
 import {
     SidebarProvider,
     Sidebar,
@@ -42,6 +51,7 @@ import {
     SidebarTrigger,
 } from '@/components/ui/sidebar';
 import VoiceComponent from '@/components/VoiceComponent';
+import NotificationBell from '@/components/custom/NotificationBell';
 import {
     Dialog,
     DialogContent,
@@ -49,6 +59,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 
 const getGlowColorClass = (accent?: string): string => {
     switch (accent?.toLowerCase()) {
@@ -103,60 +114,135 @@ export default function Chat() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [allAgents, setAllAgents] = useState<Agent[]>([]);
     const [subscribedAgents, setSubscribedAgents] = useState<Agent[]>([]);
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<ApiUser | null>(null);
     const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
     const [isLoadingAgents, setIsLoadingAgents] = useState(true);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [isSavingContext, setIsSavingContext] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+    const [isMergeMode, setIsMergeMode] = useState(false);
+    const [selectedMergeAgentIds, setSelectedMergeAgentIds] = useState<Set<number>>(new Set());
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+    const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, []);
+
+    const getAgentNames = (ids: number[]): string => {
+        return ids
+            .map(id => allAgents.find(agent => agent.id === id)?.name)
+            .filter(Boolean)
+            .join(', ');
+    };
+
+    const getAgentColors = (ids: number[]): { name: string, colorClass: string }[] => {
+        return ids
+            .map(id => {
+                const agent = allAgents.find(agent => agent.id === id);
+                return agent ? { name: agent.name, colorClass: getGlowColorClass(agent.appearance?.accent) } : null;
+            })
+            .filter(Boolean) as { name: string, colorClass: string }[];
+    };
+
+    const fetchAndSetNotifications = useCallback(async (showLoading = false) => {
+        if (showLoading) setIsLoadingNotifications(true);
+        try {
+            const allNotifsResponse = await fetchNotifications();
+            const unreadNotifsResponse = await fetchUnreadNotifications();
+
+            const sortedNotifications = (allNotifsResponse.results || []).sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            );
+
+            setNotifications(sortedNotifications);
+            setUnreadNotificationCount(unreadNotifsResponse.count || 0);
+
+        } catch (err) {
+            console.error('Failed to fetch notifications:', err);
+        } finally {
+            if (showLoading) setIsLoadingNotifications(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchAndSetNotifications(true);
+
+        notificationIntervalRef.current = setInterval(() => {
+            fetchAndSetNotifications(false);
+        }, 30000);
+
+        return () => {
+            if (notificationIntervalRef.current) {
+                clearInterval(notificationIntervalRef.current);
+            }
+        };
+    }, [fetchAndSetNotifications]);
 
     useEffect(() => {
         const loadInitialData = async () => {
             setIsLoadingAgents(true);
             setError(null);
             setMessages([]);
+            setIsMergeMode(false);
+            setSelectedMergeAgentIds(new Set());
             try {
-                const [userDataResponse, fetchedAgentsResponse] =
-                    await Promise.all([fetchUserById(USER_ID), fetchAgents()]);
+                const [userDataResponse, fetchedAgentsResponse, subscriptionsResponse, userContextResponse] =
+                    await Promise.all([
+                        fetchUserById(USER_ID),
+                        fetchAgents(),
+                        fetchUserAgentSubscriptions(),
+                        fetchUserContext(USER_ID),
+                    ]);
 
-                const userData = userDataResponse as User | null;
-                const fetchedAgents = (
-                    fetchedAgentsResponse &&
-                    Array.isArray((fetchedAgentsResponse as any).results)
-                        ? (fetchedAgentsResponse as any).results
+                const userData = userDataResponse as ApiUser | null;
+                const allFetchedAgents = (
+                    fetchedAgentsResponse?.results &&
+                    Array.isArray(fetchedAgentsResponse.results)
+                        ? fetchedAgentsResponse.results
                         : []
                 ) as Agent[];
 
                 setUser(userData);
-                setAllAgents(fetchedAgents);
+                setAllAgents(allFetchedAgents);
 
-                if (userData?.subscribed_agents && fetchedAgents.length > 0) {
-                    const subAgents = fetchedAgents.filter(agent =>
-                        userData.subscribed_agents.includes(agent.id)
-                    );
-                    setSubscribedAgents(subAgents);
+                const subscriptions = subscriptionsResponse?.results || [];
+                const subscribedAgentIds = new Set(subscriptions.map(sub => sub.agent));
 
-                    const primaryAgent = subAgents.find(
-                        agent => agent.is_primary
-                    );
+                const subAgents = allFetchedAgents.filter(agent => subscribedAgentIds.has(agent.id));
+
+                subAgents.forEach(agent => {
+                    if (!agent.appearance) {
+                        agent.appearance = { iconInitial: agent.name.charAt(0).toUpperCase() };
+                    }
+                });
+
+                setSubscribedAgents(subAgents);
+
+                console.log('Subscribed agents:', subAgents);
+
+                if (subAgents.length > 0 && !isMergeMode) {
+                    const primaryAgent = subAgents.find(agent => agent.is_primary);
                     const initialAgentId = primaryAgent
                         ? primaryAgent.id
-                        : subAgents.length > 0
-                        ? subAgents[0].id
-                        : null;
+                        : subAgents[0].id;
 
                     setSelectedAgentId(initialAgentId);
                 } else {
-                    setSubscribedAgents([]);
+                    console.log('No subscribed agents found or in merge mode.');
                     setSelectedAgentId(null);
                 }
+
+                if (userContextResponse) {
+                    setContextInput(userContextResponse);
+                }
+
             } catch (err) {
                 console.error('Failed to fetch initial data:', err);
                 setError(
@@ -172,7 +258,7 @@ export default function Chat() {
     }, []);
 
     useEffect(() => {
-        if (selectedAgentId === null) {
+        if (isMergeMode || selectedAgentId === null) {
             setMessages([]);
             setError(null);
             setIsLoadingHistory(false);
@@ -188,7 +274,7 @@ export default function Chat() {
                     USER_ID,
                     selectedAgentId
                 );
-                setMessages(history as ChatMessage[]);
+                setMessages(Array.isArray(history) ? history : []);
             } catch (err) {
                 console.error('Failed to fetch chat history:', err);
                 setError(
@@ -200,22 +286,47 @@ export default function Chat() {
             }
         };
         loadHistory();
-    }, [selectedAgentId]);
+    }, [selectedAgentId, isMergeMode]);
 
     useEffect(() => {
         scrollToBottom();
     }, [messages, scrollToBottom]);
 
+    const handleAgentSelection = (agentId: number) => {
+        if (isMergeMode) {
+            setSelectedMergeAgentIds(prev => {
+                const newSet = new Set(prev);
+                if (newSet.has(agentId)) {
+                    newSet.delete(agentId);
+                } else {
+                    newSet.add(agentId);
+                }
+                return newSet;
+            });
+            setSelectedAgentId(null);
+        } else {
+            setSelectedAgentId(agentId);
+            setSelectedMergeAgentIds(new Set());
+        }
+    };
+
+    const toggleMergeMode = () => {
+        setIsMergeMode(!isMergeMode);
+        setSelectedAgentId(null);
+        setMessages([]);
+        setError(null);
+        if (!isMergeMode) {
+            setSelectedMergeAgentIds(new Set());
+        } else {
+            if (subscribedAgents.length > 0) {
+                setSelectedAgentId(subscribedAgents[0].id);
+            }
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (
-            !input.trim() ||
-            selectedAgentId === null ||
-            isSending ||
-            isLoadingHistory ||
-            isLoadingAgents
-        )
-            return;
+        if (!input.trim() || isSending || isLoadingAgents || isLoadingHistory) return;
 
         const userMessage: ChatMessage = {
             role: 'user',
@@ -231,15 +342,43 @@ export default function Chat() {
         setError(null);
 
         try {
-            const agentResponse = await sendMessage(
-                USER_ID,
-                selectedAgentId,
-                currentInput,
-                currentContext
-            );
-            setMessages(prev => [...prev, agentResponse as ChatMessage]);
+            if (isMergeMode && selectedMergeAgentIds.size > 1) {
+                const agentIdsArray = Array.from(selectedMergeAgentIds);
+                const mergeResponse = await postAgentsMergeQuery({
+                    agent_ids: agentIdsArray,
+                    query: currentInput,
+                });
+
+                if (mergeResponse && mergeResponse.response) {
+                    const assistantMessage: ChatMessage = {
+                        role: 'assistant',
+                        message: mergeResponse.response,
+                        timestamp: new Date().toISOString(),
+                        mergedAgentIds: agentIdsArray,
+                    };
+                    setMessages(prev => [...prev, assistantMessage]);
+                } else {
+                    throw new Error('Failed to get response from merged agents.');
+                }
+            } else if (!isMergeMode && selectedAgentId !== null) {
+                const agentResponse = await sendMessage(
+                    selectedAgentId,
+                    currentInput,
+                    currentContext
+                );
+
+                if (agentResponse) {
+                    setMessages(prev => [...prev, agentResponse as ChatMessage]);
+                } else {
+                    throw new Error('Failed to get response from agent.');
+                }
+            } else {
+                setError(isMergeMode ? 'Please select at least two agents for merging.' : 'Please select an agent.');
+                setMessages(prev => prev.filter(msg => msg !== userMessage));
+                setInput(currentInput);
+            }
         } catch (err) {
-            console.error('Failed to send message:', err);
+            console.error('Failed to process message:', err);
             setError('Failed to send message. Please try again.');
             setMessages(prev => prev.filter(msg => msg !== userMessage));
             setInput(currentInput);
@@ -248,15 +387,61 @@ export default function Chat() {
         }
     };
 
-    const handleUpdateContext = () => {
-        console.log('Updating context (placeholder):', contextInput);
-        toast.success('Context updated (placeholder)');
-        setContextInput('');
+    const handleUpdateContext = async () => {
+        if (!user || isSavingContext) return;
+
+        setIsSavingContext(true);
+        const success = await saveUserContext(user.id, contextInput);
+        setIsSavingContext(false);
+
+        if (success) {
+            toast.success('Context saved successfully!');
+        } else {
+            toast.error('Failed to save context. Please try again.');
+        }
     };
-    const selectedAgent = subscribedAgents.find(
-        agent => agent.id === selectedAgentId
-    );
+
+    const handleMarkRead = async (id: number) => {
+        const notification = notifications.find(n => n.id === id);
+        if (!notification || notification.is_read) return;
+
+        setNotifications(prev =>
+            prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
+        );
+        setUnreadNotificationCount(prev => Math.max(0, prev - 1));
+
+        const result = await markNotificationAsRead(id);
+        if (!result) {
+            toast.error('Failed to mark notification as read.');
+            setNotifications(prev =>
+                prev.map(n => (n.id === id ? { ...n, is_read: false } : n))
+            );
+            setUnreadNotificationCount(prev => prev + 1);
+        }
+    };
+
+    const handleMarkAllRead = async () => {
+        if (unreadNotificationCount === 0) return;
+
+        const previouslyUnreadIds = new Set(notifications.filter(n => !n.is_read).map(n => n.id));
+
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        setUnreadNotificationCount(0);
+
+        const result = await markAllNotificationsAsRead();
+        if (!result.success) {
+            toast.error('Failed to mark all notifications as read.');
+            setNotifications(prev => prev.map(n => previouslyUnreadIds.has(n.id) ? { ...n, is_read: false } : n));
+            setUnreadNotificationCount(previouslyUnreadIds.size);
+        }
+    };
+
+    const selectedAgent = !isMergeMode ? subscribedAgents.find(agent => agent.id === selectedAgentId) : null;
     const glowColorClass = getGlowColorClass(selectedAgent?.appearance?.accent);
+
+    const canSubmit = isMergeMode
+        ? input.trim() && selectedMergeAgentIds.size > 1
+        : input.trim() && selectedAgentId !== null;
 
     return (
         <SidebarProvider>
@@ -268,10 +453,19 @@ export default function Chat() {
                     collapsible="none"
                     className="z-20 border-r bg-background w-80 shrink-0"
                 >
-                    <SidebarHeader>
+                    <SidebarHeader className="flex items-center justify-between pr-3">
                         <span className="font-semibold text-lg mt-2 pl-3">
-                            Agents
+                            {isMergeMode ? 'Select Agents to Merge' : 'Agents'}
                         </span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={toggleMergeMode}
+                            title={isMergeMode ? 'Exit Merge Mode' : 'Enter Merge Mode'}
+                            className="mt-1"
+                        >
+                            {isMergeMode ? <X className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                        </Button>
                     </SidebarHeader>
                     <SidebarContent className="px-4">
                         <SidebarGroup>
@@ -285,45 +479,58 @@ export default function Chat() {
                                         </>
                                     ) : subscribedAgents.length > 0 ? (
                                         subscribedAgents.map(agent => (
-                                            <Button
-                                                key={agent.id}
-                                                variant={
-                                                    selectedAgentId === agent.id
-                                                        ? 'secondary'
-                                                        : 'ghost'
-                                                }
-                                                className="w-full justify-start h-auto py-2 px-3 text-left"
-                                                onClick={() =>
-                                                    setSelectedAgentId(agent.id)
-                                                }
-                                                disabled={isLoadingHistory}
-                                            >
-                                                <Avatar className="h-8 w-8 mr-3 shrink-0">
-                                                    <AvatarImage
-                                                        src={
-                                                            agent.appearance
-                                                                ?.iconInitial
-                                                        }
-                                                        alt={agent.name}
+                                            <div key={agent.id} className="flex items-center space-x-2">
+                                                {isMergeMode && (
+                                                    <Checkbox
+                                                        id={`agent-checkbox-${agent.id}`}
+                                                        checked={selectedMergeAgentIds.has(agent.id)}
+                                                        onCheckedChange={() => handleAgentSelection(agent.id)}
+                                                        className="ml-1"
+                                                        aria-label={`Select agent ${agent.name} for merging`}
                                                     />
-                                                    <AvatarFallback>
-                                                        <Bot size={16} />
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex flex-col overflow-hidden">
-                                                    <span className="font-medium truncate text-sm">
-                                                        {agent.name}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground truncate">
-                                                        {agent.description}
-                                                    </span>
-                                                </div>
-                                            </Button>
+                                                )}
+                                                <Button
+                                                    variant={
+                                                        (!isMergeMode && selectedAgentId === agent.id)
+                                                            ? 'secondary'
+                                                            : 'ghost'
+                                                    }
+                                                    className={cn(
+                                                        "w-full justify-start h-auto py-2 text-left",
+                                                        isMergeMode ? "pl-2" : "pl-3"
+                                                    )}
+                                                    onClick={() => handleAgentSelection(agent.id)}
+                                                    disabled={isLoadingHistory && !isMergeMode}
+                                                >
+                                                    <Avatar className="h-8 w-8 mr-3 shrink-0">
+                                                        <AvatarImage
+                                                            src={
+                                                                agent.appearance
+                                                                    ?.iconInitial
+                                                            }
+                                                            alt={agent.name}
+                                                        />
+                                                        <AvatarFallback>
+                                                            {agent.appearance?.iconInitial?.[0]?.toUpperCase() || (
+                                                                <Bot size={16} />
+                                                            )}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex flex-col overflow-hidden">
+                                                        <span className="font-medium truncate text-sm">
+                                                            {agent.name}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground truncate">
+                                                            {agent.description}
+                                                        </span>
+                                                    </div>
+                                                </Button>
+                                            </div>
                                         ))
                                     ) : (
                                         <div className="text-center text-muted-foreground py-4 px-2">
-                                            No active chats. Visit the
-                                            marketplace to subscribe to agents.
+                                            No agents subscribed. Visit the
+                                            marketplace.
                                         </div>
                                     )}
                                 </div>
@@ -333,7 +540,7 @@ export default function Chat() {
                 </Sidebar>
 
                 <main className="flex flex-col flex-1 h-screen overflow-hidden relative">
-                    {selectedAgent && (
+                    {selectedAgent && !isMergeMode && (
                         <div
                             className={cn(
                                 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
@@ -349,7 +556,14 @@ export default function Chat() {
                     <header className="h-14 border-b flex items-center justify-between px-4 md:px-6 shrink-0 relative z-10 bg-background backdrop-blur-sm">
                         <div className="flex items-center gap-2">
                             <SidebarTrigger side="left" />
-                            {selectedAgent ? (
+                            {isMergeMode ? (
+                                <div className="flex items-center gap-2">
+                                    <Users className="h-5 w-5 text-muted-foreground" />
+                                    <span className="font-medium text-sm truncate hidden sm:inline">
+                                        Merge Mode ({selectedMergeAgentIds.size} selected)
+                                    </span>
+                                </div>
+                            ) : selectedAgent ? (
                                 <div className="flex items-center gap-2">
                                     <Avatar className="h-7 w-7">
                                         <AvatarImage
@@ -371,7 +585,7 @@ export default function Chat() {
                                 </div>
                             ) : !isLoadingAgents ? (
                                 <span className="text-sm text-muted-foreground">
-                                    Select a chat
+                                    {isMergeMode ? 'Select agents to merge' : 'Select a chat'}
                                 </span>
                             ) : (
                                 <div className="flex items-center gap-2">
@@ -382,6 +596,13 @@ export default function Chat() {
                         </div>
 
                         <div className="flex items-center gap-1 md:gap-2 ml-auto">
+                            <NotificationBell
+                                notifications={notifications}
+                                unreadCount={unreadNotificationCount}
+                                onMarkRead={handleMarkRead}
+                                onMarkAllRead={handleMarkAllRead}
+                                isLoading={isLoadingNotifications}
+                            />
                             <ThemeToggle />
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -401,8 +622,7 @@ export default function Chat() {
                                             )
                                         }
                                         disabled={
-                                            !selectedAgentId ||
-                                            messages.length === 0
+                                            messages.length === 0 || isMergeMode
                                         }
                                     >
                                         Clear Chat
@@ -413,7 +633,7 @@ export default function Chat() {
                                                 'Agent info action (not implemented)'
                                             )
                                         }
-                                        disabled={!selectedAgentId}
+                                        disabled={!selectedAgentId || isMergeMode}
                                     >
                                         Agent Info
                                     </DropdownMenuItem>
@@ -426,7 +646,7 @@ export default function Chat() {
                     <div className="flex-1 overflow-auto relative z-10">
                         <ScrollArea className="h-full">
                             <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
-                                {isLoadingHistory ? (
+                                {isLoadingHistory && !isMergeMode ? (
                                     <div className="space-y-6 pt-4">
                                         <MessageSkeleton isUser={false} />
                                         <MessageSkeleton isUser={true} />
@@ -436,7 +656,7 @@ export default function Chat() {
                                     <div className="text-center py-20 text-destructive">
                                         {error}
                                     </div>
-                                ) : !selectedAgentId && !isLoadingAgents ? (
+                                ) : !selectedAgentId && !isMergeMode && !isLoadingAgents ? (
                                     <div className="flex flex-col items-center justify-center h-full text-center py-20">
                                         <MessageSquare
                                             className="h-12 w-12 text-muted-foreground mb-4"
@@ -447,24 +667,39 @@ export default function Chat() {
                                         </h3>
                                         <p className="text-muted-foreground mt-2 max-w-md">
                                             Choose an agent from the sidebar to
-                                            start chatting.
+                                            start chatting or enter Merge Mode.
                                         </p>
                                     </div>
-                                ) : messages.length === 0 &&
-                                  !isLoadingHistory ? (
+                                ) : isMergeMode && selectedMergeAgentIds.size < 2 ? (
+                                    <div className="flex flex-col items-center justify-center h-full text-center py-20">
+                                        <Users
+                                            className="h-12 w-12 text-muted-foreground mb-4"
+                                            strokeWidth={1.5}
+                                        />
+                                        <h3 className="text-xl font-medium">
+                                            Merge Mode
+                                        </h3>
+                                        <p className="text-muted-foreground mt-2 max-w-md">
+                                            Select at least two agents from the sidebar to merge their capabilities for your query.
+                                        </p>
+                                    </div>
+                                ) : messages.length === 0 && !isLoadingHistory ? (
                                     <div className="flex flex-col items-center justify-center h-full text-center py-20">
                                         <MessageSquare
                                             className="h-12 w-12 text-muted-foreground mb-4"
                                             strokeWidth={1.5}
                                         />
                                         <h3 className="text-xl font-medium">
-                                            {`Start chatting with ${
-                                                selectedAgent?.name || 'agent'
-                                            }`}
+                                            {isMergeMode
+                                                ? `Query Merged Agents (${selectedMergeAgentIds.size})`
+                                                : `Start chatting with ${selectedAgent?.name || 'agent'}`
+                                            }
                                         </h3>
                                         <p className="text-muted-foreground mt-2 max-w-md">
-                                            Ask any question or start chatting
-                                            to get assistance.
+                                            {isMergeMode
+                                                ? 'Ask a question using the combined knowledge of the selected agents.'
+                                                : 'Ask any question or start chatting to get assistance.'
+                                            }
                                         </p>
                                     </div>
                                 ) : (
@@ -472,9 +707,7 @@ export default function Chat() {
                                         {messages.map((message, index) => (
                                             <div
                                                 key={
-                                                    message.timestamp +
-                                                    '-' +
-                                                    index
+                                                    `${message.timestamp}-${message.role}-${index}`
                                                 }
                                                 className={cn(
                                                     'flex items-start gap-2',
@@ -483,30 +716,34 @@ export default function Chat() {
                                                         : 'justify-start'
                                                 )}
                                             >
-                                                {message.role === 'assistant' &&
-                                                    selectedAgent && (
-                                                        <Avatar className="h-7 w-7 mr-1 shrink-0 mt-1">
-                                                            <AvatarImage
-                                                                src={
-                                                                    selectedAgent
-                                                                        .appearance
-                                                                        ?.iconInitial
-                                                                }
-                                                                alt={
-                                                                    selectedAgent.name
-                                                                }
-                                                            />
-                                                            <AvatarFallback>
-                                                                {selectedAgent.appearance?.iconInitial?.[0]?.toUpperCase() || (
-                                                                    <Bot
-                                                                        size={
-                                                                            14
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                    )}
+                                                {message.role === 'assistant' && !message.mergedAgentIds && selectedAgent && (
+                                                    <Avatar className="h-7 w-7 mr-1 shrink-0 mt-1">
+                                                        <AvatarImage
+                                                            src={
+                                                                selectedAgent
+                                                                    .appearance
+                                                                    ?.iconInitial
+                                                            }
+                                                            alt={
+                                                                selectedAgent.name
+                                                            }
+                                                        />
+                                                        <AvatarFallback>
+                                                            {selectedAgent.appearance?.iconInitial?.[0]?.toUpperCase() || (
+                                                                <Bot
+                                                                    size={
+                                                                        14
+                                                                    }
+                                                                />
+                                                            )}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                )}
+                                                {message.role === 'assistant' && message.mergedAgentIds && (
+                                                    <Avatar className="h-7 w-7 mr-1 shrink-0 mt-1 bg-muted rounded-full flex items-center justify-center">
+                                                        <Users size={14} className="text-muted-foreground" />
+                                                    </Avatar>
+                                                )}
                                                 <div
                                                     className={cn(
                                                         'rounded-lg p-3 max-w-[85%] shadow-sm text-sm relative group',
@@ -515,6 +752,21 @@ export default function Chat() {
                                                             : 'bg-card rounded-tl-none border'
                                                     )}
                                                 >
+                                                    {message.role === 'assistant' && message.mergedAgentIds && (
+                                                        <div className="mb-2 border-b pb-1.5 flex flex-wrap gap-1 items-center">
+                                                            <span className="text-xs font-medium text-muted-foreground mr-1">Merged:</span>
+                                                            {getAgentColors(message.mergedAgentIds).map(agentInfo => (
+                                                                <Badge
+                                                                    key={agentInfo.name}
+                                                                    variant="outline"
+                                                                    className={cn("text-xs border-none px-1.5 py-0.5", agentInfo.colorClass.replace('bg-', 'text-'))}
+                                                                    style={{ backgroundColor: `var(--${agentInfo.colorClass.replace('bg-', '')}-bg / 0.1)` }}
+                                                                >
+                                                                    {agentInfo.name}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                     <div className="whitespace-pre-wrap break-words">
                                                         {message.message}
                                                     </div>
@@ -562,7 +814,6 @@ export default function Chat() {
                             onSubmit={handleSubmit}
                             className="max-w-3xl mx-auto flex items-end space-x-2"
                         >
-                            {/* Modal trigger button */}
                             <Dialog
                                 open={isVoiceModalOpen}
                                 onOpenChange={setIsVoiceModalOpen}
@@ -592,13 +843,15 @@ export default function Chat() {
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 placeholder={
-                                    !selectedAgentId && !isLoadingAgents
+                                    isMergeMode
+                                        ? selectedMergeAgentIds.size > 1
+                                            ? `Query ${selectedMergeAgentIds.size} merged agents...`
+                                            : 'Select at least 2 agents to merge...'
+                                        : !selectedAgentId && !isLoadingAgents
                                         ? 'Select a chat to start...'
                                         : isLoadingHistory
                                         ? 'Loading history...'
-                                        : `Message ${
-                                              selectedAgent?.name || 'agent'
-                                          }...`
+                                        : `Message ${selectedAgent?.name || 'agent'}...`
                                 }
                                 className="flex-1 min-h-[48px] max-h-40 resize-none"
                                 onKeyDown={e => {
@@ -608,7 +861,8 @@ export default function Chat() {
                                     }
                                 }}
                                 disabled={
-                                    !selectedAgentId ||
+                                    (!isMergeMode && !selectedAgentId) ||
+                                    (isMergeMode && selectedMergeAgentIds.size < 2) ||
                                     isSending ||
                                     isLoadingAgents ||
                                     isLoadingHistory
@@ -620,14 +874,13 @@ export default function Chat() {
                                 type="submit"
                                 size="icon"
                                 disabled={
-                                    !input.trim() ||
-                                    !selectedAgentId ||
+                                    !canSubmit ||
                                     isSending ||
                                     isLoadingAgents ||
                                     isLoadingHistory
                                 }
                                 className="h-12 w-12 shrink-0"
-                                aria-label="Send message"
+                                aria-label={isMergeMode ? "Send merged query" : "Send message"}
                             >
                                 {isSending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -647,7 +900,7 @@ export default function Chat() {
                 >
                     <SidebarHeader>
                         <span className="font-semibold text-lg mt-2 pl-3">
-                            Context
+                            Personal Context
                         </span>
                     </SidebarHeader>
                     <SidebarContent className="px-4">
@@ -655,10 +908,7 @@ export default function Chat() {
                             <SidebarGroupContent>
                                 <div className="flex flex-col gap-4 h-full">
                                     <p className="text-sm text-muted-foreground">
-                                        Add relevant information here. This
-                                        context might be sent along with your
-                                        messages to help the agent understand
-                                        your needs better.
+                                        Add relevant personal information or preferences here. This context will be saved and can be sent along with your messages in single-agent mode.
                                     </p>
                                     <Textarea
                                         value={contextInput}
@@ -668,13 +918,18 @@ export default function Chat() {
                                         placeholder="Example: Project details, user preferences, background info..."
                                         className="flex-1 min-h-[200px] resize-none"
                                         aria-label="Context input area"
+                                        disabled={isSavingContext}
                                     />
                                     <Button
                                         className="w-full mt-auto"
                                         variant="secondary"
                                         onClick={handleUpdateContext}
+                                        disabled={isSavingContext || !user}
                                     >
-                                        Update Context
+                                        {isSavingContext ? (
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : null}
+                                        {isSavingContext ? 'Saving...' : 'Save Context'}
                                     </Button>
                                 </div>
                             </SidebarGroupContent>
