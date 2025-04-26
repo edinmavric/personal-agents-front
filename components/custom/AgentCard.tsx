@@ -19,7 +19,11 @@ interface AgentCardProps {
     isSubscribed: boolean;
 }
 
-const AgentCard: React.FC<AgentCardProps> = ({ agent, onSubscribeClick, isSubscribed }) => {
+const AgentCard: React.FC<AgentCardProps> = ({
+    agent,
+    onSubscribeClick,
+    isSubscribed,
+}) => {
     const formatPrice = (price: string | number | undefined): string => {
         if (price === undefined || price === null) return 'Free';
         const numPrice = Number(price);
@@ -42,7 +46,10 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onSubscribeClick, isSubscr
                 <div className="flex-1">
                     <CardTitle className="text-lg">{agent.name}</CardTitle>
                     <CardDescription className="text-xs text-muted-foreground">
-                        By {agent.creator || 'Unknown Creator'}
+                        By{' '}
+                        {agent.creator
+                            ? `User #${agent.creator}`
+                            : 'Unknown Creator'}
                     </CardDescription>
                     {agent.category && (
                         <Badge variant="outline" className="mt-1 text-xs">
@@ -66,9 +73,13 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onSubscribeClick, isSubscr
                             </span>
                         </>
                     ) : (
-                        <span className="text-sm text-muted-foreground">No rating</span>
+                        <span className="text-sm text-muted-foreground">
+                            No rating
+                        </span>
                     )}
-                    <span className="text-sm text-muted-foreground mx-1">·</span>
+                    <span className="text-sm text-muted-foreground mx-1">
+                        ·
+                    </span>
                     <span className="text-sm font-semibold">
                         {formatPrice(agent.price)}
                     </span>

@@ -589,7 +589,7 @@ export default function SmartFridge() {
                 open={isQuickRecipesModalOpen}
                 onOpenChange={setIsQuickRecipesModalOpen}
             >
-                <DialogContent className="max-w-[95vw] sm:max-w-xl md:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/70 dark:to-indigo-900/60 border-blue-200 dark:border-blue-800 p-3 sm:p-6">
+                <DialogContent className="max-w-[95vw] sm:max-w-xl md:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900/95 border-blue-200 dark:border-blue-800 p-3 sm:p-6">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-1.5 sm:gap-2 text-blue-700 dark:text-blue-400 text-xl sm:text-2xl">
                             <Lightbulb className="h-5 sm:h-6 w-5 sm:w-6" />

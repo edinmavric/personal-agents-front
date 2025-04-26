@@ -4,7 +4,17 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import HealthDashboard from '@/components/custom/dashboard/HealthDashboard';
 import FinancialDashboard from '@/components/custom/dashboard/FinancialDashboard';
-import { LucideIcon, Flame, DollarSign, HeartPulse, Target, CheckCircle2, Info, PiggyBank, Droplets } from "lucide-react";
+import {
+    LucideIcon,
+    Flame,
+    DollarSign,
+    HeartPulse,
+    Target,
+    CheckCircle2,
+    Info,
+    PiggyBank,
+    Droplets,
+} from 'lucide-react';
 
 type BadgeColor = 'string' | 'indigo' | 'green' | 'yellow';
 
@@ -80,17 +90,17 @@ const mockData: MockSection[] = [
 
 const TABS = [
     { key: 'overview', label: 'Overview' },
-    { key: 'health', label: 'Health Dashboard' },
-    { key: 'financial', label: 'Financial Dashboard' },
+    { key: 'health', label: 'Health' },
+    { key: 'financial', label: 'Financial' },
 ];
 
 const overviewIcons: Record<string, LucideIcon> = {
-    "Daily Goal": Flame,
-    "Best Deal": PiggyBank,
-    "Budget": DollarSign,
-    "Tip": Info,
-    "Protein Intake": CheckCircle2,
-    "Hydration": Droplets,
+    'Daily Goal': Flame,
+    'Best Deal': PiggyBank,
+    Budget: DollarSign,
+    Tip: Info,
+    'Protein Intake': CheckCircle2,
+    Hydration: Droplets,
 };
 
 const badgeColorClass = (color: string) => {
@@ -140,9 +150,15 @@ const page = () => {
                                 >
                                     <div className="flex items-center gap-3 mb-1">
                                         <span className="inline-flex items-center justify-center rounded-md bg-muted p-2">
-                                            <Icon className={`h-6 w-6 ${badgeColorClass(item.color)}`} />
+                                            <Icon
+                                                className={`h-6 w-6 ${badgeColorClass(
+                                                    item.color
+                                                )}`}
+                                            />
                                         </span>
-                                        <span className="font-semibold text-lg">{item.label}</span>
+                                        <span className="font-semibold text-lg">
+                                            {item.label}
+                                        </span>
                                     </div>
                                     <div className="flex-1 text-muted-foreground text-sm mb-2">
                                         {item.description}
@@ -150,7 +166,9 @@ const page = () => {
                                     <div>
                                         <Badge
                                             variant="outline"
-                                            className={`mt-1 ${badgeColorClass(item.color)}`}
+                                            className={`mt-1 ${badgeColorClass(
+                                                item.color
+                                            )}`}
                                         >
                                             {item.badge}
                                         </Badge>

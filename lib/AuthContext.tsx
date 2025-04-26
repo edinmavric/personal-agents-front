@@ -99,7 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (!loading && !isAuthenticated) {
-            if (window.location.pathname !== '/login') {
+            if (
+                window.location.pathname !== '/login' &&
+                window.location.pathname !== '/register'
+            ) {
                 router.push('/login');
             }
         }
