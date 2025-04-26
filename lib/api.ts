@@ -1,5 +1,3 @@
-import { agentsData } from '@/lib/data/agents';
-import { usersData } from '@/lib/data/users';
 import { authAxios } from './auth';
 import { API_ENDPOINTS } from './api-config';
 

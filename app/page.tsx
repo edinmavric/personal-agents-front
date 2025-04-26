@@ -80,6 +80,29 @@ const getGlowColorClass = (accent?: string): string => {
     }
 };
 
+const getAgentGradientColor = (appearance?: Agent['appearance']): string => {
+    if (
+        appearance?.bgColor &&
+        /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(appearance.bgColor)
+    ) {
+        return appearance.bgColor;
+    }
+    switch (appearance?.accent?.toLowerCase()) {
+        case 'green':
+            return '#22c55e';
+        case 'blue':
+            return '#3b82f6';
+        case 'red':
+            return '#ef4444';
+        case 'yellow':
+            return '#eab308';
+        case 'purple':
+            return '#a855f7';
+        default:
+            return '#6366f1';
+    }
+};
+
 const USER_ID = 1;
 
 const AgentSkeleton = () => (
@@ -486,7 +509,8 @@ export default function Chat() {
     const selectedAgent = !isMergeMode
         ? subscribedAgents.find(agent => agent.id === selectedAgentId)
         : null;
-    const glowColorClass = getGlowColorClass(selectedAgent?.appearance?.accent);
+
+    const glowGradientColor = getAgentGradientColor(selectedAgent?.appearance);
 
     const canSubmit = isMergeMode
         ? input.trim() && selectedMergeAgentIds.size > 1
@@ -625,10 +649,12 @@ export default function Chat() {
                                 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
                                 'w-[600px] h-[600px] max-w-full max-h-full',
                                 'rounded-full blur-3xl opacity-15 pointer-events-none',
-                                'transition-colors duration-500 ease-in-out',
-                                glowColorClass
+                                'transition-colors duration-500 ease-in-out'
                             )}
-                            style={{ willChange: 'background-color, opacity' }}
+                            style={{
+                                willChange: 'background-color, opacity',
+                                background: `radial-gradient(circle at 50% 50%, ${glowGradientColor} 0%, transparent 70%)`,
+                            }}
                             aria-hidden="true"
                         />
                     )}
