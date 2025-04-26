@@ -66,6 +66,26 @@ export interface UserAgentSubscription {
     agent: number;
 }
 
+export interface AgentTemplate {
+    id: number;
+    creator_email: string;
+    name: string;
+    description: string;
+    system_prompt: string;
+    category: string;
+    is_public: boolean;
+    created_at: string;
+    updated_at: string;
+    creator: number;
+}
+
+export interface PaginatedAgentTemplateResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: AgentTemplate[];
+}
+
 export const fetchAgents = async (): Promise<PaginatedResponse<Agent>> => {
     try {
         const response = await authAxios.get<PaginatedResponse<Agent>>(
@@ -383,5 +403,22 @@ export const postAgentsMergeQuery = async (data: {
     } catch (error) {
         console.error('Error posting agents merge query:', error);
         return null;
+    }
+};
+
+export const fetchAgentTemplates = async (): Promise<PaginatedAgentTemplateResponse> => {
+    try {
+        const response = await authAxios.get<PaginatedAgentTemplateResponse>(
+            API_ENDPOINTS.agentTemplates
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching agent templates:', error);
+        return {
+            count: 0,
+            next: null,
+            previous: null,
+            results: [],
+        };
     }
 };

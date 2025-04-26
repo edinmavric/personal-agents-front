@@ -177,6 +177,7 @@ export default function Chat() {
             setError(null);
             setIsLoadingHistory(false);
             return;
+
         }
 
         const loadHistory = async () => {
@@ -608,7 +609,7 @@ export default function Chat() {
                                     }
                                 }}
                                 disabled={
-                                    !selectedAgentId ||
+                                    !selectedAgentId || // <--- disables when no agent selected
                                     isSending ||
                                     isLoadingAgents ||
                                     isLoadingHistory
@@ -620,8 +621,8 @@ export default function Chat() {
                                 type="submit"
                                 size="icon"
                                 disabled={
+                                    !selectedAgentId || // <--- disables when no agent selected
                                     !input.trim() ||
-                                    !selectedAgentId ||
                                     isSending ||
                                     isLoadingAgents ||
                                     isLoadingHistory
