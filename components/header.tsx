@@ -9,7 +9,7 @@ const navLinks = [
     { href: '/', label: 'Chat' },
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/marketplace', label: 'Marketplace' },
-    { href: 'recepies', label: 'Recipes' },
+    { href: '/shopping-comparison', label: 'Shopping' },
 ];
 
 const Header = () => {

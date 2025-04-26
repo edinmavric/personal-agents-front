@@ -38,6 +38,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import Link from 'next/link';
 
 // Types
 interface StorePrice {
@@ -186,11 +187,9 @@ export default function ShoppingComparison() {
     const [showLocationDialog, setShowLocationDialog] = useState(false);
     const [locationError, setLocationError] = useState<string | null>(null);
 
-    // Check if geolocation is available
     const isGeolocationAvailable =
         typeof navigator !== 'undefined' && 'geolocation' in navigator;
 
-    // Enable location tracking
     const enableLocation = () => {
         if (!isGeolocationAvailable) {
             setLocationError('Geolocation is not supported by your browser');
@@ -370,7 +369,7 @@ export default function ShoppingComparison() {
             } finally {
                 setIsLoading(false);
             }
-        }, 1500);
+        }, 2500);
     };
 
     const formatPrice = (price: number) => {
@@ -423,6 +422,14 @@ export default function ShoppingComparison() {
                             <Navigation className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                         )}
                         {locationEnabled ? 'Location On' : 'Enable Location'}
+                    </Button>
+                    <Button
+                        asChild
+                        variant="outline"
+                        className="text-xs sm:text-sm flex-1 sm:flex-none border-green-600 hover:text-green-700 hover:bg-green-600 text-white hover:border-green-700"
+                        size="sm"
+                    >
+                        <Link href="/recepies">Smart Recepies</Link>
                     </Button>
                     <Button
                         onClick={findBestDeals}

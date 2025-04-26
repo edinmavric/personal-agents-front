@@ -719,11 +719,11 @@ export default function Chat() {
                                 Marketplace
                             </Link>
                             <Link
-                                href="/recepies"
+                                href="/shopping-comparison"
                                 className="text-sm font-medium px-3 py-2 rounded hover:bg-muted transition-colors"
                                 style={{ textDecoration: 'none' }}
                             >
-                                Recepies
+                                Shopping
                             </Link>
                             <NotificationBell
                                 notifications={notifications}
