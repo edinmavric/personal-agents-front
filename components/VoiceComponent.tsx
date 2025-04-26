@@ -55,7 +55,7 @@ const VoiceChat = () => {
     const handleStartConversation = async () => {
         try {
             const conversationId = await conversation.startSession({
-                agentId: 'ORPPizxXWtYeSEoDoA6k',
+                agentId: 'iTsvx2FPlVNo6B6Lykm3',
             });
             console.log('Started conversation:', conversationId);
         } catch (error) {
