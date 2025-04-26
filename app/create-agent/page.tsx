@@ -22,14 +22,12 @@ import { cn } from "@/lib/utils";
 import { Bot, Sparkles, ArrowLeft, Zap } from "lucide-react";
 import Link from "next/link";
 
-// Define the structure for the form data, excluding fields set by backend or defaults
 type AgentFormData = Omit<
   Agent,
   "id" | "rating" | "reviewCount" | "is_primary" | "owner" | "appearance"
 > & {
-  tagsInput: string; // Use a single string for tags input
-  publish: boolean; // Add publish flag
-  // Add appearance fields if needed for creation
+  tagsInput: string;
+  publish: boolean;
   iconInitial?: string;
 };
 
@@ -59,10 +57,9 @@ export default function CreateAgentPage() {
     }
   };
 
-  // Function to get avatar styles based on current form data
   const getAvatarStyles = () => {
     return {
-      backgroundColor: "#6366f1", // Default indigo color
+      backgroundColor: "#6366f1",
       color: "#ffffff",
       fontWeight: "bold",
       fontSize: "1.5rem",
@@ -350,9 +347,7 @@ export default function CreateAgentPage() {
 
         .animate-fadeIn {
           animation: fadeIn 0.5s ease forwards;
-        }
-
-        .bg-grid-pattern {
+          .bg-grid-pattern {
           background-image: linear-gradient(
               to right,
               rgba(127, 127, 127, 0.1) 1px,
@@ -365,7 +360,168 @@ export default function CreateAgentPage() {
             );
           background-size: 20px 20px;
         }
-      `}</style>
-    </div>
-  );
+      `}</style>}
+  
+        const initial = formData.iconInitial || formData.name?.charAt(0).toUpperCase() || 'A';
+
+        const agentDataToSubmit = {
+            name: formData.name,
+            description: formData.description,
+            system_prompt: formData.system_prompt,
+            price: formData.price || '$0',
+            tags: formData.tagsInput?.split(',').map(tag => tag.trim()).filter(tag => tag) || [],
+            is_published: formData.publish,
+            appearance: {
+                iconInitial: initial,
+                iconColor: formData.iconColor || '#000000',
+                bgColor: formData.bgColor || '#ffffff',
+            },
+        };
+
+        try {
+            const result = await createAgent(agentDataToSubmit as any);
+
+            if (result.success) {
+                toast.success(`Agent "${result.data?.name}" created successfully!`);
+                router.push('/marketplace');
+            } else {
+                toast.error(`Failed to create agent: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('Failed to submit agent creation form:', error);
+            toast.error('An unexpected error occurred. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4 md:p-10 flex items-center justify-center">
+            <Toaster richColors />
+            <Card className="w-full max-w-2xl shadow-lg">
+                <CardHeader>
+                    <CardTitle className="text-3xl font-bold text-primary">Create Your AI Agent</CardTitle>
+                    <CardDescription>Define the properties of your new custom agent.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Agent Name <span className="text-red-500">*</span></Label>
+                            <Input
+                                id="name"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                placeholder="e.g., Marketing Copywriter Pro"
+                                required
+                                className="bg-card"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
+                            <Textarea
+                                id="description"
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                placeholder="Describe what your agent does, its capabilities, and use cases."
+                                required
+                                className="bg-card min-h-[100px]"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="system_prompt">System Prompt <span className="text-red-500">*</span></Label>
+                            <Textarea
+                                id="system_prompt"
+                                name="system_prompt"
+                                value={formData.system_prompt}
+                                onChange={handleChange}
+                                placeholder="Define the core instructions, personality, and constraints for your agent. e.g., 'You are a helpful assistant specializing in...' "
+                                required
+                                className="bg-card min-h-[150px]"
+                            />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="tagsInput">Tags (comma-separated)</Label>
+                            <Input
+                                id="tagsInput"
+                                name="tagsInput"
+                                value={formData.tagsInput}
+                                onChange={handleChange}
+                                placeholder="e.g., marketing, copywriting, social media"
+                                className="bg-card"
+                            />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="price">Price</Label>
+                            <Input
+                                id="price"
+                                name="price"
+                                value={formData.price}
+                                onChange={handleChange}
+                                placeholder="e.g., $10 or $0 for free"
+                                className="bg-card"
+                            />
+                        </div>
+
+                        <fieldset className="border p-4 rounded-md space-y-4">
+                             <legend className="text-sm font-medium px-1">Appearance</legend>
+                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                                 <div className="space-y-2">
+                                     <Label htmlFor="iconInitial">Icon Initial</Label>
+                                     <Input
+                                         id="iconInitial"
+                                         name="iconInitial"
+                                         value={formData.iconInitial}
+                                         onChange={handleChange}
+                                         maxLength={2}
+                                         placeholder={formData.name?.charAt(0).toUpperCase() || 'A'}
+                                         className="bg-card w-16 text-center"
+                                     />
+                                 </div>
+                                 <div className="space-y-2">
+                                     <Label htmlFor="iconColor">Icon Color</Label>
+                                     <Input
+                                         id="iconColor"
+                                         name="iconColor"
+                                         type="color"
+                                         value={formData.iconColor}
+                                         onChange={handleColorChange}
+                                         className="bg-card p-1 h-10 w-16"
+                                     />
+                                 </div>
+                                 <div className="space-y-2">
+                                     <Label htmlFor="bgColor">Background Color</Label>
+                                     <Input
+                                         id="bgColor"
+                                         name="bgColor"
+                                         type="color"
+                                         value={formData.bgColor}
+                                         onChange={handleColorChange}
+                                         className="bg-card p-1 h-10 w-16"
+                                     />
+                                 </div>
+                             </div>
+                         </fieldset>
+
+
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Checkbox
+                                id="publish"
+                                checked={formData.publish}
+                                onCheckedChange={handleCheckboxChange}
+                            />
+                            <Label htmlFor="publish" className="cursor-pointer">
+                                Publish this agent to the marketplace immediately
+                            </Label>
+                        </div>
+
+                        <CardFooter className="p-0 pt-6">
+                            <Button type="submit" disabled={isSubmitting} className="w-full">
+                                {isSubmitting ? 'Creating Agent...' : 'Create Agent'}
+                            </Button>
+                        </CardFooter>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }

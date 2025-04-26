@@ -36,7 +36,7 @@ export function Component({ data }: WeeklyActivityChartProps) {
   const caloriesColor = "hsl(22.6 82.1% 56.9%)";
 
   return (
-    <Card className="h-full max-h-[550px] flex flex-col">
+    <Card className="h-full max-h-[550px] flex flex-col pb-24">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-blue-600" /> Weekly Activity
