@@ -1,5 +1,4 @@
-// export const API_BASE = 'https://hackathon-api-f8pfp.ondigitalocean.app/';
-export const API_BASE = 'http://localhost:8000/'; // Local development URL
+export const API_BASE = 'https://hackathon-api-f8pfp.ondigitalocean.app/';
 
 
 export const API_ENDPOINTS = {
