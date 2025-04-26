@@ -11,5 +11,5 @@ export const API_ENDPOINTS = {
     login: `${API_BASE}auth/login`,
     register: `${API_BASE}auth/registration`,
     logout: `${API_BASE}auth/logout`,
-    userContext: (userId: number) => `${API_BASE}api/v1/users/${userId}/context/`, // Removed leading slash
+    userContext: (userId: number) => `${API_BASE}api/v1/users/${userId}/context/`,
 };

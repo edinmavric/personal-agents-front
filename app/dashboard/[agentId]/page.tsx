@@ -1,7 +1,6 @@
 import React from "react";
 import FinancialDashboard from "@/components/custom/dashboard/FinancialDashboard";
-import HealthDashboard from "@/components/custom/dashboard/HealthDashboard"; // <-- Importuj HealthDashboard
-// Importujte druge dashboard komponente po potrebi
+import HealthDashboard from "@/components/custom/dashboard/HealthDashboard";
 
 interface AgentDashboardPageProps {
   params: {
@@ -14,32 +13,19 @@ export default async function AgentDashboardPage({
 }: AgentDashboardPageProps) {
   const { agentId } = params;
 
-  // Logika za prikazivanje odgovarajućeg dashboard-a
   if (agentId === "1") {
-    // <-- Dodaj uslov za Health Agenta
-    // Opciono: Dohvatite podatke specifične za HealthDashboard ovde
-    // const healthData = await fetchHealthData(userId); // Primer
-    return <HealthDashboard /* healthData={healthData} */ />;
+    return <HealthDashboard />;
   } else if (agentId === "2") {
-    // Pretpostavka da je ID finansijskog agenta '2'
-    // Opciono: Dohvatite podatke specifične za FinancialDashboard ovde
-    // const financialData = await fetchFinancialData(userId);
-    return <FinancialDashboard /* financialData={financialData} */ />;
+    return <FinancialDashboard />;
   }
 
-  // Dodajte 'else if' za druge agente
-  // else if (agentId === '...') { ... }
-
-  // Podrazumevani prikaz ako ID ne odgovara
   return (
     <div className="p-6">
       {" "}
-      {/* Dodaj malo paddinga */}
       <h1 className="text-xl font-semibold mb-4">
         Dashboard for Agent ID: {agentId}
       </h1>
       <p>Specific dashboard for this agent is not configured.</p>
-      {/* Možeš dodati linkove ka postojećim dashboardima radi lakše navigacije */}
       <div className="mt-4 space-x-4">
         <a href="/dashboard/1" className="text-blue-600 hover:underline">
           View Health Dashboard (ID 1)

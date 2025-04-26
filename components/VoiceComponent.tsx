@@ -3,13 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useConversation } from '@11labs/react';
 
-// UI
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
-
-// API
-// import { sendTranscriptionsToBackend } from "@/lib/api";
 
 const VoiceChat = () => {
     const [hasPermission, setHasPermission] = useState(false);
@@ -74,13 +70,6 @@ const VoiceChat = () => {
 
             if (transcriptions.length > 0) {
                 setIsSending(true);
-                // // const success = await sendTranscriptionsToBackend(transcriptions);
-                // if (success) {
-                //   console.log("Successfully sent transcriptions to backend");
-                // } else {
-                //   setErrorMessage("Failed to send transcriptions to backend");
-                // }
-                // setIsSending(false);
             }
         } catch (error) {
             setErrorMessage('Failed to end conversation');

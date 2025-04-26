@@ -97,6 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         initAuth();
     }, [initAuth]);
 
+    useEffect(() => {
+        if (!loading && !isAuthenticated) {
+            if (window.location.pathname !== '/login') {
+                router.push('/login');
+            }
+        }
+    }, [loading, isAuthenticated, router]);
+
     const login = async (credentials: LoginData) => {
         try {
             const response = await authLogin(credentials);

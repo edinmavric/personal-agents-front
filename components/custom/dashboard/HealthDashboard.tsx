@@ -4,12 +4,9 @@ import React, { useState } from "react";
 import { StatCard } from "@/components/custom/StatCard";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-// --- Uvoz novih chart komponenti ---
-import { Component as WeeklyActivityChart } from "../WeeklyActivity"; // Pretpostavljamo da je ovo Bar chart
-import { Component as ActivityRadarChart } from "../ActivityRadarChart"; // Pretpostavljamo da je ovo Radar chart
-import { Component as ScreenTimeChart } from "../ScreenTimeChart"; // Dodaj import
-
+import { Component as WeeklyActivityChart } from "../WeeklyActivity";
+import { Component as ActivityRadarChart } from "../ActivityRadarChart";
+import { Component as ScreenTimeChart } from "../ScreenTimeChart";
 import {
   LucideIcon,
   HeartPulse,
@@ -23,7 +20,6 @@ import {
   CalendarDays,
 } from "lucide-react";
 
-// --- Interfejsi (isti kao pre) ---
 interface UserHealthSummary {
   averageSteps: number;
   averageCaloriesBurned: number;
@@ -54,7 +50,6 @@ interface ActivityTypeDistribution {
 
 interface HealthDashboardProps {}
 
-// --- Mock podaci (ažurirani za chartove) ---
 const mockUserHealthSummary: UserHealthSummary = {
   averageSteps: 8500,
   averageCaloriesBurned: 2100,
@@ -95,7 +90,6 @@ const mockActivityRadarData: ActivityRadarData[] = mockActivityDistribution.map(
   })
 );
 
-// --- Komponenta ---
 export default function HealthDashboard({}: HealthDashboardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [healthSummary, setHealthSummary] = useState<UserHealthSummary>(
@@ -138,9 +132,7 @@ export default function HealthDashboard({}: HealthDashboardProps) {
 
   return (
     <div className="space-y-6 p-6">
-      {/* StatCards ostaju iste */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {/* ... StatCard komponente ... */}
         <StatCard
           title="Avg. Daily Steps"
           value={formatNumber(healthSummary.averageSteps)}
@@ -173,8 +165,6 @@ export default function HealthDashboard({}: HealthDashboardProps) {
           iconColor="text-red-600 dark:text-red-400"
         />
       </div>
-
-      {/* Dnevni ciljevi (Horizontalni Barovi) - Pomereno gore */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -211,7 +201,6 @@ export default function HealthDashboard({}: HealthDashboardProps) {
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -248,15 +237,10 @@ export default function HealthDashboard({}: HealthDashboardProps) {
           </CardContent>
         </Card>
       </div>
-
-      {/* Raspored za grafikone - Pomereno dole */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 min-h-[400px]">
-        {/* Weekly Activity - uža kolona */}
         <div className="lg:col-span-1 flex flex-col">
           <WeeklyActivityChart data={weeklyActivity} />
         </div>
-
-        {/* Screen Time Chart - nova kolona */}
         <div className="lg:col-span-1 flex flex-col">
           <ScreenTimeChart
             data={[
@@ -267,8 +251,6 @@ export default function HealthDashboard({}: HealthDashboardProps) {
             ]}
           />
         </div>
-
-        {/* Activity Distribution */}
         <div className="lg:col-span-1 flex flex-col">
           <ActivityRadarChart data={activityRadarData} />
         </div>

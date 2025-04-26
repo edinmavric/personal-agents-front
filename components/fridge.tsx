@@ -36,7 +36,6 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 
-// Type definitions
 interface Recipe {
     id: string;
     title: string;
@@ -68,7 +67,6 @@ export default function SmartFridge() {
     const addGrocery = () => {
         if (currentInput.trim() === '') return;
 
-        // Add the new grocery to the list if it's not already there
         if (!groceries.includes(currentInput.trim().toLowerCase())) {
             setGroceries([...groceries, currentInput.trim().toLowerCase()]);
             setCurrentInput('');
@@ -98,7 +96,6 @@ export default function SmartFridge() {
         setIsLoading(true);
 
         try {
-            // Replace with your actual API endpoint
             const response = await fetch('/api/recipes/generate', {
                 method: 'POST',
                 headers: {
@@ -118,7 +115,6 @@ export default function SmartFridge() {
             console.error('Error generating recipes:', error);
             toast.error('Something went wrong. Please try again.');
 
-            // For demo purposes, set some mock recipes if the API call fails
             setRecipes([
                 {
                     id: '1',
@@ -155,7 +151,6 @@ export default function SmartFridge() {
         setLoadingQuickRecipes(true);
 
         try {
-            // Replace with your actual API endpoint
             const response = await fetch('/api/recipes/quick', {
                 method: 'GET',
                 headers: {
@@ -174,7 +169,6 @@ export default function SmartFridge() {
             console.error('Error getting quick recipes:', error);
             toast.error('Something went wrong. Please try again.');
 
-            // For demo purposes, set some mock quick recipes
             setQuickRecipes([
                 {
                     id: 'q1',
@@ -244,25 +238,19 @@ export default function SmartFridge() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Display preview
         const reader = new FileReader();
         reader.onload = event => {
             setUploadedImage(event.target?.result as string);
         };
         reader.readAsDataURL(file);
 
-        // Process image for ingredient detection (mock implementation)
         setIsProcessingImage(true);
 
         try {
-            // Here you would typically send the image to an API for ingredient detection
-            // For demo purposes, we'll simulate a delay and add mock ingredients
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Mock detected ingredients - in a real app, these would come from an API
             const detectedIngredients = ['apple', 'banana', 'tomato'];
 
-            // Add detected ingredients that aren't already in the list
             const newIngredients = detectedIngredients.filter(
                 ingredient => !groceries.includes(ingredient)
             );
@@ -300,7 +288,6 @@ export default function SmartFridge() {
             </div>
 
             <div className="grid grid-cols-12 gap-6 flex-grow overflow-hidden">
-                {/* Input Section - Left Column */}
                 <Card className="col-span-4 bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950/30 dark:to-emerald-900/20 border-green-200 dark:border-green-800 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col">
                     <CardHeader className="py-3 space-y-1">
                         <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400 text-xl">
@@ -430,7 +417,6 @@ export default function SmartFridge() {
                     </CardFooter>
                 </Card>
 
-                {/* Recipe Results - Right Column */}
                 <Card className="col-span-8 bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950/30 dark:to-emerald-900/20 border-green-200 dark:border-green-800 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col">
                     <CardHeader className="py-3 space-y-1">
                         <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400 text-xl">
@@ -597,7 +583,6 @@ export default function SmartFridge() {
                 </Card>
             </div>
 
-            {/* Quick Recipes Modal */}
             <Dialog
                 open={isQuickRecipesModalOpen}
                 onOpenChange={setIsQuickRecipesModalOpen}

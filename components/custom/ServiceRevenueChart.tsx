@@ -35,45 +35,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Updated data structure
 interface SpendingItem {
-  item: string; // Changed from serviceName (can be category or merchant)
-  amount: number; // Changed from revenue
+  item: string;
+  amount: number;
 }
 
 interface TopBottomSpendingChartProps {
-  data?: SpendingItem[]; // Use updated interface
+  data?: SpendingItem[];
   className?: string;
   displayMode?: "top" | "bottom";
 }
 
 const chartConfig = {
   amount: {
-    // Changed from revenue
     label: "Amount",
-    color: "#9681fa", // Keep purple theme or adjust
+    color: "#9681fa",
   },
 } satisfies ChartConfig;
 
 export function ServiceRevenueChart({
-  // Keep function name for now, or rename file/function
   data = [],
   className,
   displayMode = "top",
 }: TopBottomSpendingChartProps) {
-  // Use updated props interface
-  const [selectedPeriod, setSelectedPeriod] = useState("month"); // Default to month
+  const [selectedPeriod, setSelectedPeriod] = useState("month");
 
-  // Process data passed via props
   const processedData = [...data]
     .sort(
       (a, b) =>
-        displayMode === "top" ? b.amount - a.amount : a.amount - b.amount // Sort by amount
+        displayMode === "top" ? b.amount - a.amount : a.amount - b.amount
     )
-    .slice(0, 5) // Take top/bottom 5
+    .slice(0, 5)
     .map((item, index) => ({
       ...item,
-      // Shorten long names if necessary
       item: item.item.length > 10 ? item.item.slice(0, 9) + "..." : item.item,
       color: generateColorFromPurple(index, 5, displayMode === "bottom"),
     }));
@@ -92,18 +86,16 @@ export function ServiceRevenueChart({
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
   }
 
-  // Format currency as Euros
   const formatCurrency = (value: number) =>
     `€${value.toLocaleString("en-IE", {
-      minimumFractionDigits: 0, // Whole Euros for chart simplicity
+      minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     })}`;
 
-  const formatAxisCurrency = (value: number) => `€${value / 1000}k`; // Format as k€
+  const formatAxisCurrency = (value: number) => `€${value / 1000}k`;
 
   const handlePeriodChange = (value: string) => {
     setSelectedPeriod(value);
-    // Add logic to refetch/filter data based on period if needed
   };
 
   const chartTitle =
@@ -116,7 +108,6 @@ export function ServiceRevenueChart({
 
   return (
     <Card className={`flex flex-col ${className}`}>
-      {/* Header remains similar, adjust text */}
       <CardHeader className="pb-2 px-6">
         <div className="flex items-center justify-between mb-1">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -163,7 +154,7 @@ export function ServiceRevenueChart({
                   strokeOpacity={0.3}
                 />
                 <XAxis
-                  dataKey="item" // Use item key
+                  dataKey="item"
                   type="category"
                   tickLine={false}
                   axisLine={false}
@@ -171,7 +162,7 @@ export function ServiceRevenueChart({
                   tick={{ fontSize: 11 }}
                 />
                 <YAxis
-                  dataKey="amount" // Use amount key
+                  dataKey="amount"
                   type="number"
                   axisLine={false}
                   tickLine={false}
@@ -206,7 +197,6 @@ export function ServiceRevenueChart({
           </ChartContainer>
         )}
       </CardContent>
-      {/* Footer removed */}
     </Card>
   );
 }

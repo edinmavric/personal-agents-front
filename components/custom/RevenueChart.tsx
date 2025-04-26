@@ -33,24 +33,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Interface for financial data point (more generic)
 interface FinancialDataPoint {
-  period: string; // e.g., "W1", "Jan", "2023"
+  period: string;
   income: number;
   spending: number;
 }
 
-// Helper to generate mock data for different timeframes
 const generateFinancialData = (
   timeframe: "weekly" | "monthly" | "yearly",
   baseMonthlyIncome: number,
-  baseMonthlySpending: number // Ensure this is less than baseMonthlyIncome
+  baseMonthlySpending: number
 ): FinancialDataPoint[] => {
   const data: FinancialDataPoint[] = [];
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth(); // 0-11
+  const currentMonth = new Date().getMonth();
   const months = [
     "Jan",
     "Feb",
@@ -66,22 +64,19 @@ const generateFinancialData = (
     "Dec",
   ];
 
-  // Ensure base spending is less than base income for generation
   const safeBaseSpending = Math.min(
     baseMonthlySpending,
     baseMonthlyIncome * 0.9
-  ); // Cap spending at 90% of income
+  );
 
   switch (timeframe) {
     case "weekly":
-      // Distribute monthly base across 4 weeks, ensuring income > spending
       for (let i = 1; i <= 4; i++) {
         const incomePart =
-          (baseMonthlyIncome / 4) * (Math.random() * 0.1 + 0.95); // +/- 5% variation
-        // Ensure spending is less than income for the week
+          (baseMonthlyIncome / 4) * (Math.random() * 0.1 + 0.95);
         const spendingPart = Math.min(
-          (safeBaseSpending / 4) * (Math.random() * 0.2 + 0.9), // +/- 10% variation
-          incomePart * 0.95 // Cap spending at 95% of weekly income
+          (safeBaseSpending / 4) * (Math.random() * 0.2 + 0.9),
+          incomePart * 0.95
         );
         data.push({
           period: `W${i}`,
@@ -92,16 +87,14 @@ const generateFinancialData = (
       return data;
 
     case "monthly":
-      // Generate plausible data for the last 12 months
       for (let i = 0; i < 12; i++) {
         const monthIndex = (currentMonth - i + 12) % 12;
         const incomeVariation = i === 0 ? 1 : Math.random() * 0.05 + 0.975;
-        const spendingVariation = i === 0 ? 1 : Math.random() * 0.15 + 0.875; // +/- 7.5% variation for spending
+        const spendingVariation = i === 0 ? 1 : Math.random() * 0.15 + 0.875;
         const monthlyIncome = Math.round(baseMonthlyIncome * incomeVariation);
-        // Ensure spending is less than income
         const monthlySpending = Math.min(
           Math.round(safeBaseSpending * spendingVariation),
-          Math.round(monthlyIncome * 0.95) // Cap at 95% of monthly income
+          Math.round(monthlyIncome * 0.95)
         );
         data.push({
           period: months[monthIndex],
@@ -109,25 +102,23 @@ const generateFinancialData = (
           spending: monthlySpending,
         });
       }
-      return data.reverse(); // Chronological order
+      return data.reverse();
 
     case "yearly":
-      // Generate plausible data for the last 5 years
       for (let i = 0; i < 5; i++) {
         const year = currentYear - i;
-        const yearlyVariation = 1 - i * 0.03 + (Math.random() * 0.06 - 0.03); // Smaller yearly change
+        const yearlyVariation = 1 - i * 0.03 + (Math.random() * 0.06 - 0.03);
         const yearlyIncome = Math.round(
           baseMonthlyIncome * 12 * yearlyVariation
         );
-        // Ensure spending is less than income
         const yearlySpending = Math.min(
           Math.round(
             safeBaseSpending *
               12 *
               yearlyVariation *
               (Math.random() * 0.1 + 0.95)
-          ), // Add slight spending variation
-          Math.round(yearlyIncome * 0.9) // Cap at 90% of yearly income
+          ),
+          Math.round(yearlyIncome * 0.9)
         );
         data.push({
           period: year.toString(),
@@ -135,26 +126,24 @@ const generateFinancialData = (
           spending: yearlySpending,
         });
       }
-      return data.reverse(); // Chronological order
+      return data.reverse();
 
     default:
       return [];
   }
 };
 
-// Chart configuration with specific Green and Red colors
 const chartConfig = {
   income: {
     label: "Income",
-    color: "hsl(142.1, 76.2%, 36.3%)", // Green
+    color: "hsl(142.1, 76.2%, 36.3%)",
   },
   spending: {
     label: "Spending",
-    color: "hsl(0, 84.2%, 60.2%)", // Red
+    color: "hsl(0, 84.2%, 60.2%)",
   },
 } satisfies ChartConfig;
 
-// Props interface
 interface RevenueChartProps {
   monthlyIncome: number;
   totalMonthlySpending: number;
@@ -167,20 +156,16 @@ export function RevenueChart({
   const [timeframe, setTimeframe] = React.useState<
     "weekly" | "monthly" | "yearly"
   >("monthly");
-  // State for chart data, initialized to null or empty array
   const [chartData, setChartData] = useState<FinancialDataPoint[] | null>(null);
-  // State to track if client has mounted
   const [isClient, setIsClient] = useState(false);
 
-  // Generate data only on the client after mount
   useEffect(() => {
-    setIsClient(true); // Mark that component has mounted on client
+    setIsClient(true);
     const safeSpending = Math.min(totalMonthlySpending, monthlyIncome * 0.9);
     const data = generateFinancialData(timeframe, monthlyIncome, safeSpending);
     setChartData(data);
-  }, [monthlyIncome, totalMonthlySpending, timeframe]); // Re-generate if props or timeframe change
+  }, [monthlyIncome, totalMonthlySpending, timeframe]);
 
-  // --- Calculations moved inside the component, dependent on chartData state ---
   const formatCurrency = (value: number): string => {
     if (timeframe === "yearly" && value > 10000) {
       return `€${(value / 1000).toFixed(0)}k`;
@@ -205,7 +190,6 @@ export function RevenueChart({
   let trendText = "Calculating...";
   let isTrendingUp = false;
   if (chartData && chartData.length > 0) {
-    // Check if chartData is loaded
     const currentDataPoint = chartData[chartData.length - 1];
     const previousDataPoint =
       chartData.length > 1 ? chartData[chartData.length - 2] : null;
@@ -216,7 +200,6 @@ export function RevenueChart({
         const trendPercentage =
           ((currentNet - previousNet) / Math.abs(previousNet)) * 100;
         isTrendingUp = trendPercentage >= 0;
-        // Ensure consistent rounding for display
         trendText = `${
           isTrendingUp ? "Trending up" : "Trending down"
         } by ${Math.abs(trendPercentage).toFixed(1)}%`;
@@ -236,7 +219,6 @@ export function RevenueChart({
       trendText = "Data unavailable";
     }
   } else if (isClient) {
-    // If client mounted but data is still null/empty
     trendText = "Data unavailable";
   }
 
@@ -250,7 +232,6 @@ export function RevenueChart({
     timeframe.charAt(0).toUpperCase() + timeframe.slice(1)
   } income and spending trends`;
 
-  // Render Skeleton or message while data is loading on the client
   if (!isClient || !chartData) {
     return (
       <Card>
@@ -259,7 +240,6 @@ export function RevenueChart({
             <CardTitle>{cardTitle}</CardTitle>
             <CardDescription>{cardDescription}</CardDescription>
           </div>
-          {/* Keep Select disabled or visually distinct during load? */}
           <Select value={timeframe} disabled>
             <SelectTrigger className="w-[120px] h-8 text-xs ml-auto">
               <SelectValue placeholder="Select period" />
@@ -267,11 +247,9 @@ export function RevenueChart({
           </Select>
         </CardHeader>
         <CardContent>
-          {/* Use Skeleton for chart area */}
           <Skeleton className="h-[250px] w-full" />
         </CardContent>
         <CardFooter>
-          {/* Use Skeleton for footer text */}
           <div className="flex w-full items-start gap-2 text-sm">
             <div className="grid gap-2">
               <Skeleton className="h-4 w-[150px]" />
@@ -283,7 +261,6 @@ export function RevenueChart({
     );
   }
 
-  // Render the actual chart once data is available on the client
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
@@ -311,7 +288,7 @@ export function RevenueChart({
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
           <LineChart
             accessibilityLayer
-            data={chartData} // Use state variable
+            data={chartData}
             margin={{ top: 5, left: 0, right: 10, bottom: 5 }}
           >
             <CartesianGrid vertical={false} strokeDasharray="3 3" />

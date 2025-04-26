@@ -6,7 +6,7 @@ import {
   PolarGrid,
   Radar,
   RadarChart,
-  ResponsiveContainer, // Importuj ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts";
 
 import {
@@ -23,15 +23,14 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-// Interfejs za podatke
 interface ActivityRadarData {
   activity: string;
   minutes: number;
-  fullMark: number; // Max vrednost za osu
+  fullMark: number;
 }
 
 interface ActivityRadarChartProps {
-  data: ActivityRadarData[]; // Prop za podatke
+  data: ActivityRadarData[];
 }
 
 export function Component({ data }: ActivityRadarChartProps) {
@@ -48,16 +47,12 @@ export function Component({ data }: ActivityRadarChartProps) {
           Time spent on different activities (Avg. Daily)
         </CardDescription>
       </CardHeader>
-      {/* Omogućavamo da CardContent raste i centriramo sadržaj */}
       <CardContent className="pb-0 flex-grow flex items-center justify-center h-full max-h-full">
-        {/* ChartContainer sada samo pruža config, ResponsiveContainer upravlja veličinom */}
         <ChartContainer
           config={{}}
-          className="w-full h-full max-h-full" // Neka ChartContainer zauzme sav prostor CardContent-a
+          className="w-full h-full max-h-full"
         >
-          {/* ResponsiveContainer će se prilagoditi ChartContainer-u */}
           <ResponsiveContainer width="100%" height="100%">
-            {/* Dodajemo marginu na RadarChart */}
             <RadarChart
               data={data}
               margin={{ top: 20, right: 30, bottom: 10, left: 30 }}

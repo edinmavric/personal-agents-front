@@ -6,9 +6,9 @@ import { API_ENDPOINTS } from './api-config';
 export interface ChatMessage {
     role: 'user' | 'assistant';
     message: string;
-    context?: string; // Context might be sent by user, received from assistant? Clarify backend structure.
+    context?: string;
     timestamp: string;
-    mergedAgentIds?: number[]; // Added to indicate a merged response
+    mergedAgentIds?: number[];
 }
 
 interface ChatHistory {
@@ -17,28 +17,28 @@ interface ChatHistory {
 
 export interface User {
     id: number;
-    email: string; // Or other basic identifier if needed
+    email: string;
 }
 
 export interface Agent {
     id: number;
     name: string;
     description: string;
-    created_at: string; // Added from backend model
-    updated_at: string; // Added from backend model
+    created_at: string;
+    updated_at: string;
     system_prompt: string;
-    appearance?: { // Keep optional as it might be added frontend-side
+    appearance?: {
         accent?: string;
         iconColor?: string;
         bgColor?: string;
         iconInitial?: string;
     };
-    is_primary?: boolean; // Keep optional if not always present
-    category?: string; // Added from backend model (assuming category is used for filtering)
-    is_public?: boolean; // Added from backend model
-    creator?: number; // Added from backend model (user ID)
-    rating?: number; // Added for sorting/display
-    price?: string | number; // Allow string or number based on backend
+    is_primary?: boolean;
+    category?: string;
+    is_public?: boolean;
+    creator?: number;
+    rating?: number;
+    price?: string | number;
 }
 
 export interface PaginatedResponse<T> {
@@ -163,7 +163,6 @@ export const fetchUserById = async (id: number): Promise<ApiUser | null> => {
         return response.data;
     } catch (error) {
         console.error('Error fetching user:', error);
-        // If it's a 404, the user might not exist yet or have context
         if ((error as any).response?.status === 404) {
             console.log(`User ${id} not found or no context exists.`);
             return null;
@@ -197,7 +196,7 @@ export const fetchUnreadNotifications = async (): Promise<
     try {
         const response = await authAxios.get<PaginatedResponse<Notification>>(
             API_ENDPOINTS.notifications,
-            { params: { is_read: 'false' } } // Filter for unread
+            { params: { is_read: 'false' } }
         );
         return response.data;
     } catch (error) {
@@ -258,7 +257,7 @@ export const markNotificationAsRead = async (
 export const markAllNotificationsAsRead = async (): Promise<{ success: boolean, count: number }> => {
     try {
         const response = await authAxios.post<{ count: number }>(
-            `${API_ENDPOINTS.notifications}/mark-all-read/` // Adjust endpoint if needed
+            `${API_ENDPOINTS.notifications}/mark-all-read/`
         );
         return { success: true, count: response.data.count };
     } catch (error) {
@@ -467,8 +466,6 @@ export const fetchAgentTemplates = async (): Promise<PaginatedAgentTemplateRespo
         };
     }
 };
-
-// --- User Context Functions ---
 
 export const fetchUserContext = async (userId: number): Promise<string | null> => {
     try {

@@ -21,7 +21,6 @@ interface ScreenTimeChartProps {
   data: ScreenTimeData[];
 }
 
-// Mapiranje boje na kategoriju
 const colorToCategory: Record<string, string> = {
   "#6366f1": "Social",
   "#22d3ee": "Productivity",
@@ -29,7 +28,6 @@ const colorToCategory: Record<string, string> = {
   "#a3e635": "Other",
 };
 
-// Custom Tooltip za lepši prikaz
 const CustomTooltip = ({
   active,
   payload,
@@ -68,7 +66,6 @@ const CustomTooltip = ({
 export function Component({ data }: ScreenTimeChartProps) {
   const total = data.reduce((sum, d) => sum + d.minutes, 0);
 
-  // Helper za prikaz sati i minuta
   const formatTime = (minutes: number) => {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
@@ -84,7 +81,6 @@ export function Component({ data }: ScreenTimeChartProps) {
         <CardDescription>Daily phone usage by category</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow flex h-full max-h-full gap-8">
-        {/* Leva strana: Chart */}
         <div className="flex-[2] flex items-center justify-center min-w-[180px]">
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
@@ -114,7 +110,6 @@ export function Component({ data }: ScreenTimeChartProps) {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        {/* Desna strana: Lista sa wrapperom */}
         <div className="flex-1 flex flex-col justify-center">
           <div className="rounded-xl border bg-muted/60 p-4 shadow-sm flex flex-col gap-1">
             {data.map((entry) => (

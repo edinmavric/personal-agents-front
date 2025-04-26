@@ -48,7 +48,6 @@ export default function LoginPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
             setIsSubmitting(true);
-            // Calls the login function from AuthContext
             await login(values);
         } catch (error: any) {
             console.error('Login error:', error);
@@ -61,7 +60,6 @@ export default function LoginPage() {
         }
     }
 
-    // Redirect if already authenticated
     useEffect(() => {
         if (isAuthenticated && user) {
             router.push('/');

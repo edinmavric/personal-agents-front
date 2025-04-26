@@ -32,7 +32,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
         id: number,
         isRead: boolean
     ) => {
-        e.stopPropagation(); // Prevent popover from closing if clicking inside
+        e.stopPropagation();
         if (!isRead) {
             await onMarkRead(id);
         }
@@ -93,7 +93,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
                                     key={notification.id}
                                     className={cn(
                                         'p-3 hover:bg-muted/50 cursor-pointer flex items-start gap-2',
-                                        !notification.is_read && 'bg-blue-500/5' // Subtle background for unread
+                                        !notification.is_read && 'bg-blue-500/5'
                                     )}
                                     onClick={(e) => handleMarkRead(e, notification.id, notification.is_read)}
                                 >

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react"; // Import useMemo
+import React, { useState, useMemo } from "react";
 import { BarChart as BarChartIcon } from "lucide-react";
 import {
   Bar,
@@ -22,7 +22,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
-// Re-import Select components
 import {
   Select,
   SelectContent,
@@ -31,58 +30,48 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// --- Updated Interfaces ---
 interface SpendingCategoryData {
   category: string;
   amount: number;
 }
 
 interface SpendingByCategoryChartProps {
-  // Expect monthly data as the base
   monthlyData?: SpendingCategoryData[];
   className?: string;
 }
 
-// Type for the time period filter
 type TimePeriod = "week" | "month" | "year";
 
-// --- Renamed Component Function ---
 export function SpendingByCategoryChart({
-  monthlyData = [], // Expects monthly data
+  monthlyData = [],
   className,
 }: SpendingByCategoryChartProps) {
-  // State for the selected time period
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("month");
 
-  // --- Generate data based on selected period ---
   const chartData = useMemo(() => {
     let factor = 1;
     if (selectedPeriod === "week") {
-      factor = 1 / 4; // Approximate weekly data
+      factor = 1 / 4;
     } else if (selectedPeriod === "year") {
-      factor = 12; // Approximate yearly data
+      factor = 12;
     }
 
-    // Apply factor and add color
     return monthlyData
       .map((item, index) => ({
         category: item.category,
-        // Add some slight random variation for realism
         amount: Math.max(
           0,
           item.amount * factor * (1 + (Math.random() - 0.5) * 0.1)
         ),
         color: generateColorFromPurple(index, monthlyData.length),
       }))
-      .sort((a, b) => b.amount - a.amount); // Sort by amount descending
+      .sort((a, b) => b.amount - a.amount);
   }, [monthlyData, selectedPeriod]);
 
-  // Calculate total spending for the selected period
   const totalSpending = useMemo(() => {
     return chartData.reduce((sum, item) => sum + item.amount, 0);
   }, [chartData]);
 
-  // Keep color generation function
   function generateColorFromPurple(index: number, total: number): string {
     const baseHue = 250;
     const hueStep = 15;
@@ -95,7 +84,6 @@ export function SpendingByCategoryChart({
     )}%)`;
   }
 
-  // --- Update Currency Formatting to Euros ---
   const formatCurrency = (value: number) => {
     if (value == null) return "€0";
     return `€${value.toLocaleString("en-IE", {
@@ -104,7 +92,6 @@ export function SpendingByCategoryChart({
     })}`;
   };
 
-  // Update chart config key and label
   const chartConfig = {
     amount: {
       label: "Amount",
@@ -112,14 +99,11 @@ export function SpendingByCategoryChart({
     },
   } satisfies ChartConfig;
 
-  // Handler for period change
   const handlePeriodChange = (value: string) => {
     setSelectedPeriod(value as TimePeriod);
   };
 
-  // Update label rendering function
   const renderCustomizedLabel = (props: any) => {
-    // ... (keep existing renderCustomizedLabel function)
     const { x, y, width, height, value } = props;
     const formattedValue = formatCurrency(value);
     const textWidth = formattedValue.length * 6;
@@ -143,7 +127,6 @@ export function SpendingByCategoryChart({
     );
   };
 
-  // Dynamic description based on period
   const cardDescription = `Breakdown of ${selectedPeriod}ly spending`;
 
   return (
@@ -156,7 +139,6 @@ export function SpendingByCategoryChart({
             <BarChartIcon className="h-5 w-5 text-[#9681fa]" />
             Spending by Category
           </CardTitle>
-          {/* Add Select dropdown for time period */}
           <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
             <SelectTrigger
               className="w-[100px] h-8 text-xs focus:ring-0 focus:ring-offset-0"
@@ -177,7 +159,6 @@ export function SpendingByCategoryChart({
             </SelectContent>
           </Select>
         </div>
-        {/* Update Description dynamically */}
         <CardDescription>{cardDescription}</CardDescription>
       </CardHeader>
 
@@ -250,7 +231,6 @@ export function SpendingByCategoryChart({
         </ChartContainer>
       </CardContent>
 
-      {/* Update CardFooter to show total spending */}
       <CardFooter className="flex-col items-start gap-2 text-sm pt-3 pb-4 px-6 border-t mt-0">
         <div className="flex justify-between w-full">
           <div className="flex gap-2 font-medium leading-none">
@@ -270,7 +250,6 @@ export function SpendingByCategoryChart({
         </div>
       </CardFooter>
 
-      {/* Keep scrollbar styles */}
       <style jsx global>{`
         /* ... (keep existing scrollbar styles) ... */
         .custom-scrollbar::-webkit-scrollbar {

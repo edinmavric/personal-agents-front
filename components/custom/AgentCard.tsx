@@ -16,7 +16,7 @@ import type { Agent } from '@/lib/api';
 interface AgentCardProps {
     agent: Agent;
     onSubscribeClick: (agent: Agent) => void;
-    isSubscribed: boolean; // New prop
+    isSubscribed: boolean;
 }
 
 const AgentCard: React.FC<AgentCardProps> = ({ agent, onSubscribeClick, isSubscribed }) => {
@@ -76,7 +76,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onSubscribeClick, isSubscr
                 <Button
                     size="sm"
                     onClick={() => onSubscribeClick(agent)}
-                    disabled={isSubscribed} // Disable if subscribed
+                    disabled={isSubscribed}
                 >
                     {isSubscribed ? 'Subscribed' : 'Subscribe'}
                 </Button>

@@ -17,15 +17,14 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-// Definišemo interfejs za podatke koje komponenta očekuje
 interface WeeklyActivityData {
-  name: string; // Dan u nedelji
+  name: string;
   steps: number;
   calories: number;
 }
 
 interface WeeklyActivityChartProps {
-  data: WeeklyActivityData[]; // Prop za podatke
+  data: WeeklyActivityData[];
 }
 
 export function Component({ data }: WeeklyActivityChartProps) {
