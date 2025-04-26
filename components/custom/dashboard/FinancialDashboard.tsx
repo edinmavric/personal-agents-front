@@ -117,7 +117,7 @@ export default function FinancialDashboard({}: FinancialDashboardProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {" "}
       {/* Adjusted space-y */}
       <div className="grid grid-cols-12 gap-6">
@@ -133,7 +133,7 @@ export default function FinancialDashboard({}: FinancialDashboardProps) {
             isFinancial={true}
           />
         </div>
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4">
+        <div className="col-span-12 sm:col-span-6 lg:col-span-4 ">
           <StatCard
             title="Upcoming Expenses"
             value={formatCurrency(financialSummary.upcomingExpenses)}
